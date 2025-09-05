@@ -19,8 +19,10 @@ import { AuthService } from './auth.service';
 // Import des guards de sécurité
 // LocalAuthGuard : Vérifie l'email et le mot de passe lors de la connexion
 // JwtAuthGuard : Vérifie que l'utilisateur est connecté (JWT valide)
+// AdminGuard : Vérifie que l'utilisateur a le rôle admin
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AdminGuard } from './guards/admin.guard';
 
 // Import du DTO pour la création d'utilisateur
 import { CreateUserDto } from '../users/dto/users.dto';
@@ -263,6 +265,21 @@ export class AuthController {
     };
   }
 
+  // VÉRIFICATION ACCÈS ADMIN
+  // @Get('admin/check') : Route GET /auth/admin/check
+  // @UseGuards(JwtAuthGuard, AdminGuard) : Protection - utilisateur doit être connecté ET admin
+  @Get('admin/check')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  checkAdminAccess() {
+    // Si on arrive ici, c'est que l'utilisateur est connecté ET admin
+    // AdminGuard a déjà vérifié le rôle
+    return { 
+      message: 'Accès administrateur autorisé',
+      role: 'admin'
+    };
+  }
+
   // PROFIL UTILISATEUR CONNECTÉ
   // @Get('profile') : Route GET /auth/profile
   // @UseGuards(JwtAuthGuard) : Protection - utilisateur doit être connecté
@@ -274,5 +291,18 @@ export class AuthController {
     // Retourne directement le profil sans appel au service
     // Note : Pas de async car pas d'opération asynchrone
     return req.user;
+  }
+
+  // INFORMATIONS COMPLÈTES UTILISATEUR
+  // @Get('user-info') : Route GET /auth/user-info
+  // @UseGuards(JwtAuthGuard) : Protection - utilisateur doit être connecté
+  // @HttpCode(HttpStatus.OK) : Force le code de statut HTTP 200
+  @Get('user-info')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getUserInfo(@Request() req) {
+    // Récupérer toutes les informations de l'utilisateur depuis la base de données
+    // req.user.sub contient l'ID de l'utilisateur depuis le JWT
+    return this.authService.getUserProfile(req.user.sub);
   }
 }

@@ -327,14 +327,13 @@ export class UsersService {
       return { isTemporary: false };
     }
 
-    // Calculer le temps restant
+    // Calculer le temps restant en millisecondes (pour plus de précision)
     const now = new Date();
     const timeLeft = Math.max(0, temporaryUser.expiresAt.getTime() - now.getTime());
-    const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
 
     return { 
       isTemporary: true, 
-      timeLeft: hoursLeft 
+      timeLeft: timeLeft 
     };
   }
 

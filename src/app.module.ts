@@ -14,6 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
+import { RetreatsModule } from './modules/retreats/retreats.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { EmailModule } from './modules/email/email.module';
     EmailModule,    // Service d'envoi d'emails
     UsersModule,    // Gestion des utilisateurs
     AuthModule,     // Authentification et autorisation
+    RetreatsModule, // Gestion des retraites
   ],
   
   // Contrôleurs globaux (si nécessaire)

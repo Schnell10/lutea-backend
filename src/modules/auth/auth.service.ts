@@ -61,7 +61,31 @@ export class AuthService {
       const userStatus = await this.usersService.checkTemporaryUserStatus(email);
       if (userStatus.isTemporary) {
         console.log(`📝 [AuthService] Utilisateur temporaire trouvé: ${email}`);
-        throw new UnauthorizedException('Un compte avec cet email est en attente de validation. Veuillez vérifier votre boîte mail pour confirmer votre compte.');
+        
+        // Créer un message d'erreur avec le temps restant précis
+        let errorMessage = 'Un compte avec cet email est en attente de validation. Veuillez vérifier votre boîte mail pour confirmer votre compte.';
+        
+        if (userStatus.timeLeft !== undefined) {
+          if (userStatus.timeLeft === 0) {
+            errorMessage += ' Le délai de validation a expiré. Veuillez vous réinscrire.';
+          } else {
+            // Calculer le temps restant en heures et minutes
+            const hoursLeft = Math.floor(userStatus.timeLeft / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((userStatus.timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (hoursLeft === 0 && minutesLeft === 0) {
+              errorMessage += ' Le délai de validation expire dans moins d\'une minute.';
+            } else if (hoursLeft === 0) {
+              errorMessage += ` Il vous reste ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''} pour valider votre compte.`;
+            } else if (minutesLeft === 0) {
+              errorMessage += ` Il vous reste ${hoursLeft} heure${hoursLeft > 1 ? 's' : ''} pour valider votre compte.`;
+            } else {
+              errorMessage += ` Il vous reste ${hoursLeft} heure${hoursLeft > 1 ? 's' : ''} et ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''} pour valider votre compte.`;
+            }
+          }
+        }
+        
+        throw new UnauthorizedException(errorMessage);
       }
       
       // Si pas d'utilisateur permanent ni temporaire, message générique (sécurité)
@@ -332,11 +356,10 @@ export class AuthService {
         email: user.email,                    // Email de l'utilisateur
         sub: user._id.toString(),             // ID MongoDB
         role: user.role,                      // Rôle
-        iat: Math.floor(Date.now() / 1000),  // Créé à
-        exp: Math.floor(Date.now() / 1000) + (15 * 60), // Expire dans 15 minutes
+        // Pas de iat ni exp - le JWT service s'en charge automatiquement
       };
       
-      // Création du nouveau token
+      // Création du nouveau token (le JWT service gère automatiquement l'expiration)
       const newAccessToken = this.jwtService.sign(newPayload);
 
       // Retourne le nouveau token et les informations utilisateur
@@ -540,6 +563,34 @@ export class AuthService {
     } catch (error) {
       console.error(`❌ [AuthService] Erreur lors de la validation email:`, error);
       throw error; // Remonter l'erreur pour que le contrôleur puisse la gérer
+    }
+  }
+
+  // RÉCUPÉRER PROFIL UTILISATEUR COMPLET
+  // Cette méthode récupère toutes les informations de l'utilisateur depuis la base de données
+  // userId: string : ID de l'utilisateur
+  // Promise<any> : Retourne l'utilisateur complet (sans mot de passe)
+  async getUserProfile(userId: string): Promise<any> {
+    console.log(`👤 [AuthService] Récupération du profil utilisateur: ${userId}`);
+    
+    try {
+      // Récupérer l'utilisateur depuis la base de données
+      const user = await this.usersService.findById(userId) as UserDocument;
+      
+      if (!user) {
+        console.log(`❌ [AuthService] Utilisateur non trouvé: ${userId}`);
+        throw new UnauthorizedException('Utilisateur non trouvé');
+      }
+
+      console.log(`✅ [AuthService] Profil utilisateur récupéré: ${user.email}`);
+      
+      // Retourner l'utilisateur (sans le mot de passe)
+      const userObj = user.toObject();
+      const { password: _, ...result } = userObj;
+      return result;
+    } catch (error) {
+      console.error(`❌ [AuthService] Erreur lors de la récupération du profil:`, error);
+      throw error;
     }
   }
 }
