@@ -7,6 +7,14 @@ export class DateDto {
 
   @IsDateString()
   end: string;
+
+  @IsOptional()
+  @IsString()
+  heureArrivee?: string;
+
+  @IsOptional()
+  @IsString()
+  heureDepart?: string;
 }
 
 export class CreateRetreatDto {
@@ -29,6 +37,9 @@ export class CreateRetreatDto {
 
   @IsString()
   texteModal: string;
+
+  @IsString()
+  adresseRdv: string;
 
   @IsString()
   boutonPdfLabel: string;
@@ -55,6 +66,10 @@ export class CreateRetreatDto {
   @ValidateNested({ each: true })
   @Type(() => DateDto)
   dates?: DateDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  bientotDisponible?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -90,6 +105,10 @@ export class UpdateRetreatDto {
 
   @IsOptional()
   @IsString()
+  adresseRdv?: string;
+
+  @IsOptional()
+  @IsString()
   boutonPdfLabel?: string;
 
   @IsOptional()
@@ -117,6 +136,10 @@ export class UpdateRetreatDto {
   @ValidateNested({ each: true })
   @Type(() => DateDto)
   dates?: DateDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  bientotDisponible?: boolean;
 
   @IsOptional()
   @IsBoolean()

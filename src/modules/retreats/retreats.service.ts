@@ -25,13 +25,14 @@ export class RetreatsService {
     
     // Filtrage côté JS (plus fiable pour les arrays de dates)
     const filteredRetreats = retreats.filter(retreat => {
-      // Retraites sans dates
-      if (!retreat.dates || retreat.dates.length === 0) {
+      // Retraites "bientôt disponibles" (peuvent avoir ou pas de dates)
+      if (retreat.bientotDisponible) {
         return true;
       }
       
-      // Retraites avec au moins une date future
-      return retreat.dates.some(date => date.end && new Date(date.end) > now);
+      // Retraites avec au moins une date future (basé sur la date de début)
+      return retreat.dates && retreat.dates.length > 0 && 
+             retreat.dates.some(date => date.start && new Date(date.start) > now);
     });
     
     return filteredRetreats;

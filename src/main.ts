@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
+import { json, raw } from 'express';
 
 async function bootstrap() {
   console.log('🚀 [Main] Démarrage de l\'application Lutea...');
@@ -12,6 +13,14 @@ async function bootstrap() {
   // Middleware pour parser les cookies
   app.use(cookieParser());
   console.log('🍪 [Main] Middleware cookie-parser activé');
+  
+  // Configuration spéciale pour les webhooks Stripe (raw body)
+  app.use('/stripe/webhook', raw({ type: 'application/json' }));
+  console.log('🔧 [Main] Middleware raw body activé pour /stripe/webhook');
+  
+  // Middleware JSON pour toutes les autres routes
+  app.use(json());
+  console.log('📄 [Main] Middleware JSON activé pour les autres routes');
   
   // Configuration CORS pour permettre au frontend de se connecter
   // Frontend Next.js sur le port 3000, Backend sur le port 3001

@@ -21,8 +21,11 @@ export type BookingDocument = Booking & Document;
 export class Booking {
   _id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false })
+  userId?: Types.ObjectId;
+
+  @Prop({ required: true, default: false })
+  isGuest: boolean;
 
   @Prop({ type: Types.ObjectId, ref: 'Retreat', required: true })
   retreatId: Types.ObjectId;
@@ -38,6 +41,38 @@ export class Booking {
 
   @Prop({ required: true, min: 0 })
   prixTotal: number;
+
+  @Prop({ 
+    required: true,
+    type: [{
+      prenom: { type: String, required: true },
+      nom: { type: String, required: true },
+      email: { type: String, required: true }
+    }]
+  })
+  participants: Array<{
+    prenom: string;
+    nom: string;
+    email: string;
+  }>;
+
+  @Prop({ 
+    required: true,
+    type: {
+      address: { type: String, required: true },
+      city: { type: String, required: true },
+      postalCode: { type: String, required: true },
+      country: { type: String, required: true },
+      phone: { type: String, required: true }
+    }
+  })
+  billingAddress: {
+    address: string;
+    city: string;
+    postalCode: string;
+    country: string;
+    phone: string;
+  };
 
   @Prop({ 
     required: true, 
@@ -81,8 +116,15 @@ BookingSchema.index({ statut: 1 });
 BookingSchema.index({ dateStart: 1 });
 BookingSchema.index({ createdAt: -1 });
 
+// Index composé pour optimiser le cron de vérification des incohérences
+BookingSchema.index({ 
+  createdAt: -1, 
+  retreatId: 1, 
+  dateStart: 1 
+});
+
 // Validation : vérifier que les dates sont cohérentes avec la retraite
-BookingSchema.pre('save', async function(next) {
+BookingSchema.pre('save', function(next) {
   if (this.isModified('dateStart') || this.isModified('dateEnd')) {
     // TODO: Vérifier que les dates correspondent à une session de la retraite
     // TODO: Vérifier qu'il y a assez de places disponibles

@@ -2,6 +2,7 @@
 import { 
   Controller, 
   Get, 
+  Post,
   Put, 
   Delete, 
   Param, 
@@ -50,16 +51,33 @@ export class UsersController {
     @CurrentUser() user: any,
     @Body() updateData: any
   ) {
-    // Vérifier que l'utilisateur met à jour son propre profil
-    const updatedUser = await this.usersService.updateProfile(user.sub, updateData) as UserDocument;
-    
-    if (!updatedUser) {
-      throw new ForbiddenException('Erreur lors de la mise à jour');
+    console.log(`🔄 [UsersController] Demande de mise à jour du profil pour l'utilisateur: ${user.sub}`);
+    console.log(`📧 [UsersController] Email utilisateur: ${user.email}`);
+    console.log(`📋 [UsersController] Données reçues:`, {
+      hasPasswordFields: !!(updateData.currentPassword || updateData.newPassword || updateData.confirmPassword),
+      otherFields: Object.keys(updateData).filter(key => !['currentPassword', 'newPassword', 'confirmPassword'].includes(key))
+    });
+
+    try {
+      // Vérifier que l'utilisateur met à jour son propre profil
+      const updatedUser = await this.usersService.updateProfile(user.sub, updateData) as UserDocument;
+      
+      if (!updatedUser) {
+        console.error(`❌ [UsersController] Aucun utilisateur mis à jour trouvé pour l'ID: ${user.sub}`);
+        throw new ForbiddenException('Erreur lors de la mise à jour');
+      }
+      
+      console.log(`✅ [UsersController] Profil mis à jour avec succès pour: ${user.email}`);
+      
+      // Retourner le profil mis à jour sans le mot de passe
+      const { password: _password, ...profile } = updatedUser.toObject();
+      console.log(`📤 [UsersController] Retour du profil mis à jour (sans mot de passe)`);
+      
+      return profile;
+    } catch (error) {
+      console.error(`❌ [UsersController] Erreur lors de la mise à jour du profil:`, error);
+      throw error;
     }
-    
-    // Retourner le profil mis à jour sans le mot de passe
-    const { password: _password, ...profile } = updatedUser.toObject();
-    return profile;
   }
 
   // ROUTE : DELETE /users/profile
@@ -117,6 +135,38 @@ export class UsersController {
     }
     
     return { message: 'Utilisateur supprimé avec succès' };
+  }
+
+  // ROUTE : POST /users/validate-password
+  // Valide le mot de passe actuel de l'utilisateur connecté
+  @Post('validate-password')
+  @UseGuards(JwtAuthGuard)
+  async validateCurrentPassword(
+    @CurrentUser() user: any,
+    @Body() body: { currentPassword: string }
+  ) {
+    console.log(`🔐 [UsersController] Validation du mot de passe pour l'utilisateur: ${user.sub}`);
+    console.log(`📧 [UsersController] Email utilisateur: ${user.email}`);
+    console.log(`🔍 [UsersController] Mot de passe fourni: ${body.currentPassword ? 'Oui' : 'Non'}`);
+
+    try {
+      const userProfile = await this.usersService.findById(user.sub);
+      
+      if (!userProfile) {
+        console.error(`❌ [UsersController] Utilisateur non trouvé avec l'ID: ${user.sub}`);
+        throw new ForbiddenException('Utilisateur non trouvé');
+      }
+
+      console.log(`🔍 [UsersController] Utilisateur trouvé: ${userProfile.email}`);
+      const isValid = await this.usersService.validatePassword(userProfile, body.currentPassword);
+      
+      console.log(`✅ [UsersController] Résultat validation: ${isValid ? 'Valide' : 'Invalide'} pour ${user.email}`);
+      
+      return { isValid };
+    } catch (error) {
+      console.error(`❌ [UsersController] Erreur lors de la validation du mot de passe:`, error);
+      throw error;
+    }
   }
 
   // ROUTE : GET /users/check-temporary/:email

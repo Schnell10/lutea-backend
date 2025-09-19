@@ -1,6 +1,7 @@
 // Import des fonctionnalités NATIVES de NestJS
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
+import { luteaConfig } from '../../config/lutea.config';
 
 @Injectable()
 export class EmailService {
@@ -17,7 +18,7 @@ export class EmailService {
     
     try {
       const result = await this.resend.emails.send({
-        from: 'onboarding@resend.dev',
+        from: luteaConfig.emails.resend,
         to: [email],
         subject: 'Code de vérification 2FA - Lutea',
         html: `
@@ -50,8 +51,8 @@ export class EmailService {
       const link = `${process.env.FRONTEND_URL}/validate-email?token=${verificationToken}`;
       
       await this.resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: email,
+        from: luteaConfig.emails.resend,
+        to: [email],
         subject: 'Validez votre adresse email - Lutea',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -85,8 +86,8 @@ export class EmailService {
       const link = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
       
       await this.resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: email,
+        from: luteaConfig.emails.resend,
+        to: [email],
         subject: 'Réinitialisation de votre mot de passe - Lutea',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -125,8 +126,8 @@ export class EmailService {
   }): Promise<boolean> {
     try {
       await this.resend.emails.send({
-        from: 'Lutea <pierreschnell@hotmail.com>',
-        to: 'pierreschnell@hotmail.com',
+        from: luteaConfig.emails.resend,
+        to: luteaConfig.emails.contact,
         subject: `Message reçu via le site – ${contactData.nom} ${contactData.prenom}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -159,6 +160,95 @@ export class EmailService {
       
     } catch (error) {
       this.logger.error(`❌ Erreur lors de l'envoi de l'email de contact depuis ${contactData.email}:`, error);
+      return false;
+    }
+  }
+
+  // ENVOI D'ALERTE ADMIN
+  async sendAdminAlert(subject: string, message: string): Promise<boolean> {
+    console.log(`📧 [EmailService] Envoi d'alerte admin à: ${luteaConfig.emails.admin}`);
+    
+    try {
+      const result = await this.resend.emails.send({
+        from: luteaConfig.emails.resend,
+        to: [luteaConfig.emails.admin],
+        subject: subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #d32f2f;">${subject}</h2>
+            <div style="background-color: #ffebee; padding: 20px; border-left: 4px solid #d32f2f; margin: 20px 0;">
+              <pre style="white-space: pre-wrap; font-family: monospace; margin: 0;">${message}</pre>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              Cette alerte a été générée automatiquement par le système Lutea.
+            </p>
+          </div>
+        `
+      });
+
+      console.log(`✅ [EmailService] Alerte admin envoyée avec succès: ${result.data?.id || 'N/A'}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`❌ Erreur lors de l'envoi de l'alerte admin à ${luteaConfig.emails.admin}:`, error);
+      return false;
+    }
+  }
+
+  // ENVOI DE CONFIRMATION DE RÉSERVATION AVEC PDF
+  async sendBookingConfirmation(bookingData: any, retreatData: any, pdfBuffer: Buffer): Promise<boolean> {
+    const clientEmail = bookingData.participants[0]?.email;
+    
+    if (!clientEmail) {
+      console.error('❌ [EmailService] Aucun email client trouvé pour l\'envoi de confirmation');
+      return false;
+    }
+
+    console.log(`📧 [EmailService] Envoi de confirmation de réservation à: ${clientEmail}`);
+    
+    try {
+      const result = await this.resend.emails.send({
+        from: luteaConfig.emails.resend,
+        to: [clientEmail],
+        subject: `Confirmation de réservation - ${retreatData.titreCard}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2c5530;">  Confirmation de votre réservation</h2>
+            <p>Bonjour ${bookingData.participants[0]?.prenom || ''},</p>
+            <p>Votre réservation pour <strong>${retreatData.titreCard}</strong> a été confirmée avec succès !</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #2c5530; margin-top: 0;">📋 Détails de votre réservation</h3>
+              <p><strong>Retraite :</strong> ${retreatData.titreCard}</p>
+              <p><strong>Nombre de participants :</strong> ${bookingData.nbPlaces}</p>
+              <p><strong>Prix total :</strong> ${bookingData.prixTotal}€ TTC</p>
+              <p><strong>Date de paiement :</strong> ${new Date(bookingData.createdAt).toLocaleDateString('fr-FR')}</p>
+            </div>
+            
+            <p>Vous trouverez en pièce jointe votre confirmation de réservation au format PDF avec tous les détails de votre séjour.</p>
+            
+            <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            <p style="color: #999; font-size: 12px;">
+              Cordialement,<br>
+              L'équipe Lutea<br>
+              ${luteaConfig.company.email} | ${luteaConfig.company.phone}
+            </p>
+          </div>
+        `,
+        attachments: [
+          {
+            filename: `confirmation-${retreatData.titreCard.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf',
+          }
+        ]
+      });
+
+      console.log(`✅ [EmailService] Confirmation de réservation envoyée avec succès: ${result.data?.id || 'N/A'}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`❌ Erreur lors de l'envoi de la confirmation de réservation à ${clientEmail}:`, error);
       return false;
     }
   }

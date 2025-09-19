@@ -158,12 +158,57 @@ export class UsersService {
 
   // MISE À JOUR DU PROFIL
   async updateProfile(userId: string, updateUserDto: any): Promise<User | null> {
+    console.log(`📝 [UsersService] Mise à jour du profil pour l'utilisateur: ${userId}`);
+    console.log(`📋 [UsersService] Données reçues:`, {
+      hasCurrentPassword: !!updateUserDto.currentPassword,
+      hasNewPassword: !!updateUserDto.newPassword,
+      hasConfirmPassword: !!updateUserDto.confirmPassword,
+      otherFields: Object.keys(updateUserDto).filter(key => !['currentPassword', 'newPassword', 'confirmPassword', 'role'].includes(key))
+    });
+    
     // Ne pas permettre la modification du rôle (sécurité)
-    const { role: _role, ...safeUpdates } = updateUserDto;
+    const { role: _role, currentPassword: _currentPassword, newPassword, confirmPassword: _confirmPassword, ...safeUpdates } = updateUserDto;
 
-    return this.userModel
-      .findByIdAndUpdate(userId, safeUpdates, { new: true })
-      .exec();
+    // Si un nouveau mot de passe est fourni, le hasher
+    if (newPassword) {
+      console.log(`🔐 [UsersService] Nouveau mot de passe détecté - début du hachage...`);
+      console.log(`🔐 [UsersService] Longueur du nouveau mot de passe: ${newPassword.length} caractères`);
+      
+      try {
+        // Hacher le nouveau mot de passe avec bcrypt
+        const hashedNewPassword = await bcrypt.hash(newPassword, securityConfig.password.saltRounds);
+        safeUpdates.password = hashedNewPassword;
+        
+        console.log(`✅ [UsersService] Nouveau mot de passe hashé avec succès pour l'utilisateur: ${userId}`);
+        console.log(`🔐 [UsersService] Hash généré: ${hashedNewPassword.substring(0, 20)}...`);
+      } catch (error) {
+        console.error(`❌ [UsersService] Erreur lors du hachage du mot de passe:`, error);
+        throw error;
+      }
+    } else {
+      console.log(`ℹ️ [UsersService] Aucun nouveau mot de passe fourni - mise à jour des autres champs uniquement`);
+    }
+
+    console.log(`💾 [UsersService] Mise à jour en base de données...`);
+    console.log(`📋 [UsersService] Champs à mettre à jour:`, Object.keys(safeUpdates));
+
+    try {
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(userId, safeUpdates, { new: true })
+        .exec();
+
+      if (updatedUser) {
+        console.log(`✅ [UsersService] Profil mis à jour avec succès pour l'utilisateur: ${userId}`);
+        console.log(`📧 [UsersService] Email utilisateur: ${updatedUser.email}`);
+      } else {
+        console.error(`❌ [UsersService] Aucun utilisateur trouvé avec l'ID: ${userId}`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error(`❌ [UsersService] Erreur lors de la mise à jour en base:`, error);
+      throw error;
+    }
   }
 
   // VALIDATION DU MOT DE PASSE

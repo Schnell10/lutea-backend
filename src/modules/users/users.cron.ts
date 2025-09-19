@@ -1,5 +1,5 @@
 // Import des fonctionnalités NATIVES de NestJS
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 // Import de notre service utilisateur
@@ -7,7 +7,6 @@ import { UsersService } from './users.service';
 
 @Injectable()
 export class UsersCronService {
-  private readonly logger = new Logger(UsersCronService.name);
 
   constructor(private readonly usersService: UsersService) {
     console.log('⏰ [UsersCronService] Service de tâches automatiques initialisé');

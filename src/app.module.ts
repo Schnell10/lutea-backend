@@ -15,6 +15,9 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
 import { RetreatsModule } from './modules/retreats/retreats.module';
+import { BookingsModule } from './modules/bookings/bookings.module';
+import { StripeModule } from './modules/stripe/stripe.module';
+
 
 @Module({
   imports: [
@@ -36,6 +39,8 @@ import { RetreatsModule } from './modules/retreats/retreats.module';
     UsersModule,    // Gestion des utilisateurs
     AuthModule,     // Authentification et autorisation
     RetreatsModule, // Gestion des retraites
+    BookingsModule, // Gestion des réservations
+    StripeModule,   // Intégration Stripe
   ],
   
   // Contrôleurs globaux (si nécessaire)

@@ -58,10 +58,15 @@ export class Retreat {
   @Prop({ required: true, min: 0 })
   nbJours: number;
 
+  @Prop({ required: true })
+  adresseRdv: string; // Adresse de rendez-vous fixe pour la retraite
+
   @Prop({
     type: [{
       start: { type: Date, required: true },
-      end: { type: Date, required: true }
+      end: { type: Date, required: true },
+      heureArrivee: { type: String, required: false },
+      heureDepart: { type: String, required: false }
     }],
     required: false, // Peut être vide pour les retraites sans dates
     validate: {
@@ -72,10 +77,18 @@ export class Retreat {
       message: 'La date de début doit être antérieure à la date de fin'
     }
   })
-  dates: Array<{ start: Date; end: Date }>;
+  dates: Array<{ 
+    start: Date; 
+    end: Date; 
+    heureArrivee?: string;
+    heureDepart?: string;
+  }>;
 
   @Prop({ default: 0 })
   placesReservees: number;
+
+  @Prop({ default: false })
+  bientotDisponible: boolean;
 
   @Prop({ default: true })
   isActive: boolean; // Pour activer/désactiver manuellement
