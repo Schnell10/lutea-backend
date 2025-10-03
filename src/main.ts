@@ -3,12 +3,33 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { json, raw } from 'express';
+import helmet from 'helmet';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap() {
   console.log('🚀 [Main] Démarrage de l\'application Lutea...');
   
   const app = await NestFactory.create(AppModule);
   console.log('✅ [Main] Application NestJS créée');
+  
+  // Configuration Helmet pour la sécurité des en-têtes HTTP
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://api.stripe.com"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // Désactivé pour Stripe
+  }));
+  console.log('🛡️ [Main] Middleware Helmet activé (sécurité des en-têtes HTTP)');
   
   // Middleware pour parser les cookies
   app.use(cookieParser());
@@ -42,6 +63,10 @@ async function bootstrap() {
     },
   }));
   console.log('✅ [Main] Validation globale activée avec ValidationPipe');
+  
+  // Filtre d'exception global pour la gestion sécurisée des erreurs
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  console.log('🛡️ [Main] Filtre d\'exception global activé (gestion sécurisée des erreurs)');
   
   // Port du serveur backend
   // 3001 = Backend, 3000 = Frontend Next.js

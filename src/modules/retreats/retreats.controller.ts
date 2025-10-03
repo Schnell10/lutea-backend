@@ -8,13 +8,14 @@ import {
   Delete, 
   UseGuards,
   Request,
+  Query,
   HttpCode,
   HttpStatus
 } from '@nestjs/common';
 import { RetreatsService } from './retreats.service';
 import { CreateRetreatDto, UpdateRetreatDto } from './dto/retreats.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard } from '../../common/guards/admin.guard';
 
 @Controller('retreats')
 export class RetreatsController {
@@ -75,13 +76,13 @@ export class RetreatsController {
     return this.retreatsService.toggleActive(id);
   }
 
+
   @UseGuards(JwtAuthGuard, AdminGuard)
-  @Patch('admin/:id/places-reservees')
-  async updatePlacesReservees(
-    @Param('id') id: string,
-    @Body() body: { placesReservees: number }
-  ) {
-    return this.retreatsService.updatePlacesReservees(id, body.placesReservees);
+  @Get('admin/:id/reserved-places')
+  async getReservedPlaces(@Param('id') id: string, @Query('date') date?: string) {
+    const dateObj = date ? new Date(date) : undefined;
+    const placesReservees = await this.retreatsService.getReservedPlaces(id, dateObj);
+    return { placesReservees };
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)

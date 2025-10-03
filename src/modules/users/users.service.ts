@@ -1,5 +1,5 @@
 // Import des fonctionnalités NATIVES de NestJS
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -328,19 +328,6 @@ export class UsersService {
     ).exec();
   }
 
-  // RÉINITIALISATION DU MOT DE PASSE
-  async resetPassword(email: string, newPassword: string): Promise<void> {
-    const hashedPassword = await bcrypt.hash(newPassword, securityConfig.password.saltRounds);
-    
-    await this.userModel.updateOne(
-      { email },
-      {
-        password: hashedPassword,
-        failedLoginAttempts: 0,
-        lockUntil: null
-      }
-    ).exec();
-  }
 
   // VÉRIFICATION DU RÔLE ADMIN
   async isAdmin(userId: string): Promise<boolean> {
@@ -447,7 +434,7 @@ export class UsersService {
       // Envoyer l'email avec le code 2FA
       await this.emailService.send2FACode(email, code);
       
-      console.log(`🔐 Code 2FA généré pour ${email}: ${code} (expire dans ${securityConfig.twoFactor.codeExpiry} minutes)`);
+      console.log(`🔐 Code 2FA généré pour ${email} (expire dans ${securityConfig.twoFactor.codeExpiry} minutes)`);
       
       return {
         success: true,
@@ -472,20 +459,50 @@ export class UsersService {
 
   // GÉNÉRATION D'UN TOKEN DE RÉINITIALISATION DE MOT DE PASSE
   async generatePasswordResetToken(email: string): Promise<string> {
+    // Vérifier le rate limiting
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new BadRequestException('Utilisateur non trouvé');
+    }
+
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - securityConfig.passwordReset.windowMs);
+    
+    // Vérifier si l'utilisateur a dépassé la limite
+    if (user.passwordResetAttempts >= securityConfig.passwordReset.maxAttempts) {
+      if (user.passwordResetLastAttempt && user.passwordResetLastAttempt > oneHourAgo) {
+        const timeLeft = Math.ceil((user.passwordResetLastAttempt.getTime() + securityConfig.passwordReset.windowMs - now.getTime()) / (1000 * 60));
+        throw new BadRequestException(`Trop de tentatives de réinitialisation. Réessayez dans ${timeLeft} minutes.`);
+      } else {
+        // Reset du compteur si la fenêtre de temps est dépassée
+        await this.userModel.updateOne(
+          { email },
+          { 
+            passwordResetAttempts: 0,
+            passwordResetLastAttempt: null
+          }
+        ).exec();
+      }
+    }
+
     // Générer un token sécurisé de 32 caractères
     const resetToken = crypto.randomBytes(16).toString('hex');
     
     // Calculer la date d'expiration (1 heure)
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     
-    // Sauvegarder le token en base
+    // Sauvegarder le token en base et incrémenter le compteur
     await this.userModel.updateOne(
       { email: email },
       { 
         passwordResetToken: resetToken,
-        passwordResetExpires: expiresAt
+        passwordResetExpires: expiresAt,
+        passwordResetAttempts: (user.passwordResetAttempts || 0) + 1,
+        passwordResetLastAttempt: now
       }
     ).exec();
+    
+    console.log(`🔐 [UsersService] Token de réinitialisation généré pour: ${email} (tentative ${(user.passwordResetAttempts || 0) + 1}/${securityConfig.passwordReset.maxAttempts})`);
     
     return resetToken;
   }
@@ -500,9 +517,61 @@ export class UsersService {
     }
   }
 
+  // MOT DE PASSE OUBLIÉ - DEMANDE DE RÉINITIALISATION
+  // email: string : Email de l'utilisateur qui a oublié son mot de passe
+  // Retourne un message de confirmation
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    // Validation que l'email est fourni
+    if (!email) {
+      throw new BadRequestException('Email requis');
+    }
+
+    // Recherche de l'utilisateur par email
+    const user = await this.findByEmail(email);
+    
+    // Vérification que l'utilisateur existe
+    if (!user) {
+      // Pour la sécurité, ne pas révéler si l'email existe ou non
+      return { message: 'Si cet email existe dans notre base, un lien de réinitialisation a été envoyé.' };
+    }
+
+    // Générer un token de réinitialisation sécurisé
+    const resetToken = await this.generatePasswordResetToken(email);
+    
+    // Envoyer l'email avec le lien de réinitialisation
+    await this.sendPasswordResetEmail(email, resetToken);
+
+    return { message: 'Si cet email existe dans notre base, un lien de réinitialisation a été envoyé.' };
+  }
+
+  // RÉINITIALISER MOT DE PASSE
+  // token: string : Token de réinitialisation reçu par email
+  // newPassword: string : Nouveau mot de passe choisi par l'utilisateur
+  // Retourne un message de confirmation
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    // Validation des entrées
+    if (!token || !newPassword) {
+      throw new BadRequestException('Token et nouveau mot de passe requis');
+    }
+
+    // La validation de la force du mot de passe est maintenant gérée automatiquement 
+    // par le ValidationPipe via les décorateurs @MinLength(8) et @Matches() dans ResetPasswordDto
+
+    // Réinitialisation du mot de passe via le service utilisateur
+    const success = await this.resetPasswordWithToken(token, newPassword);
+    
+    if (!success) {
+      throw new UnauthorizedException('Token de réinitialisation invalide ou expiré');
+    }
+
+    return { message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.' };
+  }
+
   // RÉINITIALISATION DU MOT DE PASSE AVEC TOKEN
   async resetPasswordWithToken(token: string, newPassword: string): Promise<boolean> {
     try {
+      console.log(`🔐 [UsersService] Tentative de réinitialisation avec token: ${token.substring(0, 8)}...`);
+      
       // Rechercher l'utilisateur par token et vérifier l'expiration
       const user = await this.userModel.findOne({
         passwordResetToken: token,
@@ -510,11 +579,15 @@ export class UsersService {
       }).exec();
       
       if (!user) {
+        console.log(`❌ [UsersService] Token invalide ou expiré: ${token.substring(0, 8)}...`);
         return false; // Token invalide ou expiré
       }
       
+      console.log(`✅ [UsersService] Token valide trouvé pour: ${user.email}`);
+      
       // Hasher le nouveau mot de passe
       const hashedPassword = await bcrypt.hash(newPassword, securityConfig.password.saltRounds);
+      console.log(`🔒 [UsersService] Nouveau mot de passe hashé pour: ${user.email}`);
       
       // Mettre à jour le mot de passe et supprimer le token
       await this.userModel.updateOne(
@@ -525,6 +598,20 @@ export class UsersService {
           passwordResetExpires: undefined
         }
       ).exec();
+      
+      console.log(`🎉 [UsersService] Mot de passe réinitialisé avec succès pour: ${user.email}`);
+      console.log(`🗑️ [UsersService] Token de réinitialisation supprimé pour: ${user.email}`);
+      
+      // Réinitialiser le compteur de tentatives après succès
+      await this.userModel.updateOne(
+        { _id: user._id },
+        { 
+          passwordResetAttempts: 0,
+          passwordResetLastAttempt: null
+        }
+      ).exec();
+      
+      console.log(`🔄 [UsersService] Compteur de tentatives réinitialisé pour: ${user.email}`);
       
       return true;
       

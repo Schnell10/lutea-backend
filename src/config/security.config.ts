@@ -29,6 +29,13 @@ export const securityConfig = {
     maxAttempts: 5,      // Nombre max d'essais avant invalidation du code
   },
 
+  // Configuration du rate limiting pour réinitialisation de mot de passe
+  passwordReset: {
+    maxAttempts: 3,      // Maximum de tentatives par heure
+    windowMs: 60 * 60 * 1000, // Fenêtre de temps : 1 heure
+    lockDuration: 24 * 60 * 60 * 1000, // Durée de verrouillage : 24 heures
+  },
+
   // Configuration de la limitation de débit (rate limiting)
   rateLimit: {
     windowMs: 15 * 60 * 1000, // Fenêtre de temps : 15 minutes

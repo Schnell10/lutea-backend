@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Retreat, RetreatDocument } from './retreats.schema';
+import { Booking, BookingDocument } from '../bookings/bookings.schema';
 import { CreateRetreatDto, UpdateRetreatDto } from './dto/retreats.dto';
 
 @Injectable()
 export class RetreatsService {
   constructor(
     @InjectModel(Retreat.name) private retreatModel: Model<RetreatDocument>,
+    @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
   ) {}
 
   // Récupérer toutes les retraites (pour admin)
@@ -102,23 +104,81 @@ export class RetreatsService {
     return retreat.save();
   }
 
-  // Mettre à jour le nombre de places réservées
-  async updatePlacesReservees(id: string, placesReservees: number): Promise<Retreat> {
-    if (!Types.ObjectId.isValid(id)) {
+  // Calculer les places réservées pour une retraite à une date spécifique (méthode dynamique)
+  async getReservedPlaces(retreatId: string, date?: Date): Promise<number> {
+    if (!Types.ObjectId.isValid(retreatId)) {
       throw new BadRequestException('ID de retraite invalide');
     }
 
-    const retreat = await this.retreatModel.findById(id).exec();
+    const retreat = await this.retreatModel.findById(retreatId).exec();
     if (!retreat) {
       throw new NotFoundException('Retraite non trouvée');
     }
 
-    if (placesReservees > retreat.places) {
-      throw new BadRequestException('Le nombre de places réservées ne peut pas dépasser la capacité');
+    // Si une date est fournie, calculer pour cette date spécifique
+    if (date) {
+      const placesReservees = await this.bookingModel.aggregate([
+        {
+          $match: {
+            retreatId: new Types.ObjectId(retreatId),
+            dateStart: date,
+            $or: [
+              { 
+                statut: 'CONFIRMED',
+                statutPaiement: 'PAID'
+              },
+              { 
+                statut: 'PENDING',
+                statutPaiement: 'PENDING'
+              }
+            ]
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalPlaces: { $sum: '$nbPlaces' }
+          }
+        }
+      ]);
+
+      return placesReservees.length > 0 ? placesReservees[0].totalPlaces : 0;
     }
 
-    retreat.placesReservees = placesReservees;
-    return retreat.save();
+    // Si pas de date, calculer pour tous les blocs (pour l'admin)
+    let totalPlacesReservees = 0;
+
+    for (const dateBlock of retreat.dates) {
+      const placesReservees = await this.bookingModel.aggregate([
+        {
+          $match: {
+            retreatId: new Types.ObjectId(retreatId),
+            dateStart: dateBlock.start,
+            $or: [
+              { 
+                statut: 'CONFIRMED',
+                statutPaiement: 'PAID'
+              },
+              { 
+                statut: 'PENDING',
+                statutPaiement: 'PENDING'
+              }
+            ]
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalPlaces: { $sum: '$nbPlaces' }
+          }
+        }
+      ]);
+
+      const blockPlaces = placesReservees.length > 0 ? placesReservees[0].totalPlaces : 0;
+      totalPlacesReservees += blockPlaces;
+    }
+
+    return totalPlacesReservees;
   }
 
   // Rechercher des retraites par critères (pour admin)

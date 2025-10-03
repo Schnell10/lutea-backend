@@ -9,26 +9,8 @@ import { PdfGeneratorService } from '../email/pdf-generator.service';
 import { EmailService } from '../email/email.service';
 import Stripe from 'stripe';
 
-export interface CreateBookingDto {
-  retreatId: string;
-  dateStart: Date;
-  dateEnd: Date;
-  nbPlaces: number;
-  participants: Array<{
-    prenom: string;
-    nom: string;
-    email: string;
-  }>;
-  billingAddress: {
-    address: string;
-    city: string;
-    postalCode: string;
-    country: string;
-    phone: string;
-  };
-  notes?: string;
-  statut?: string;
-}
+// Import du DTO depuis le fichier dédié
+import { CreateBookingDto } from './bookings.dto';
 
 @Injectable()
 export class BookingsService {
@@ -43,7 +25,15 @@ export class BookingsService {
 
   // Créer un nouveau booking (bloque les places immédiatement)
   async createBooking(userId: string | null, createBookingDto: CreateBookingDto): Promise<Booking> {
-    const { retreatId, dateStart, dateEnd, nbPlaces, participants, billingAddress, notes, statut } = createBookingDto;
+    const { retreatId, nbPlaces, participants, billingAddress, notes, statut } = createBookingDto;
+    
+    // Conversion des dates string vers Date si nécessaire
+    const dateStart = typeof createBookingDto.dateStart === 'string' 
+      ? new Date(createBookingDto.dateStart) 
+      : createBookingDto.dateStart;
+    const dateEnd = typeof createBookingDto.dateEnd === 'string' 
+      ? new Date(createBookingDto.dateEnd) 
+      : createBookingDto.dateEnd;
 
     // 🎯 LOG DÉTAILLÉ POUR LA CRÉATION DE BOOKING
     console.log('🎯 ===========================================');
@@ -127,14 +117,20 @@ export class BookingsService {
     const booking = new this.bookingModel({
       userId: userId ? new Types.ObjectId(userId) : null,
       isGuest: !userId, // true si pas d'userId (client anonyme)
+      isStripeBooking: true, // true par défaut car créé via le tunnel Stripe
       retreatId: new Types.ObjectId(retreatId),
+      // Informations spécifiques de la retraite sélectionnée (viennent du tunnel de réservation)
+      retreatName: createBookingDto.retreatName || retreat.titreCard,
+      retreatAddress: createBookingDto.retreatAddress || retreat.adresseRdv,
+      retreatHeureArrivee: createBookingDto.retreatHeureArrivee,
+      retreatHeureDepart: createBookingDto.retreatHeureDepart,
       dateStart,
       dateEnd,
       nbPlaces,
       prixTotal,
       participants: participants,
       billingAddress: billingAddress,
-      statut: (statut as BookingStatus) || BookingStatus.PENDING,
+      statut: statut || BookingStatus.PENDING,
       statutPaiement: PaymentStatus.PENDING,
       notes: notes || '',
     });
@@ -231,7 +227,7 @@ export class BookingsService {
       }
 
       // Générer le PDF
-      const pdfBuffer = await this.pdfGeneratorService.generateConfirmationPdf(confirmedBooking, retreat);
+      const pdfBuffer = await this.pdfGeneratorService.generateConfirmationPdf(confirmedBooking);
       console.log('✅ [PDF] PDF généré avec succès');
       
       // Envoyer l'email avec le PDF
@@ -293,17 +289,33 @@ export class BookingsService {
     return booking;
   }
 
+  // Récupérer un booking par ID pour PDF (plus besoin de populate)
+  async findByIdWithRetreat(id: string): Promise<any> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('ID de booking invalide');
+    }
+
+    const booking = await this.bookingModel.findById(id).exec();
+
+    if (!booking) {
+      throw new BadRequestException('Booking non trouvé');
+    }
+
+    return booking;
+  }
+
   // Récupérer les bookings d'un utilisateur
   async findUserBookings(userId: string): Promise<Booking[]> {
     if (!Types.ObjectId.isValid(userId)) {
       throw new BadRequestException('ID d\'utilisateur invalide');
     }
 
-    return this.bookingModel
+    const bookings = await this.bookingModel
       .find({ userId: new Types.ObjectId(userId) })
-      .populate('retreatId', 'nom prix')
       .sort({ createdAt: -1 })
       .exec();
+
+    return bookings;
   }
 
   // Calculer les places disponibles pour une retraite
@@ -500,17 +512,19 @@ export class BookingsService {
     
     console.log(`📊 [BookingsService] Paiements Stripe récupérés (5 derniers jours):`, stripePayments.length);
     
-    // 2. Récupérer les bookings des 5 derniers jours (peu importe la date de la retraite)
+    // 2. Récupérer SEULEMENT les bookings Stripe des 5 derniers jours
     const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
     
     const allBookings = await this.bookingModel.find({
       createdAt: { 
-        $gte: fiveDaysAgo,
-        $lt: gracePeriodAgo 
-      }
+        $gte: fiveDaysAgo
+        // Supprimé: $lt: gracePeriodAgo pour inclure TOUS les bookings
+      },
+      isStripeBooking: true, // ← SEULEMENT les bookings créés via Stripe
+      statut: 'CONFIRMED' // ← SEULEMENT les bookings confirmés (avec paiement)
     }).populate('retreatId', 'titreCard dates');
 
-    console.log(`📊 [BookingsService] Bookings récupérés (5 derniers jours):`, allBookings.length);
+    console.log(`📊 [BookingsService] Bookings Stripe récupérés (5 derniers jours):`, allBookings.length);
 
     // 3. Créer un mapping des paiements Stripe par stripePaymentIntentId
     const stripeByPaymentId = new Map<string, Stripe.PaymentIntent>();
@@ -527,10 +541,20 @@ export class BookingsService {
     }
 
     // 5. Détecter les paiements "orphelins" (sans booking correspondant)
+    // Mais ignorer les paiements récents (délai de grâce)
     const orphanPayments = [];
     for (const [paymentId, payment] of stripeByPaymentId) {
       if (!bookingsByStripeId.has(paymentId)) {
-        // Paiement sans booking correspondant
+        // Vérifier si le paiement est récent (délai de grâce)
+        const paymentDate = new Date(payment.created * 1000);
+        const isRecentPayment = paymentDate > gracePeriodAgo;
+        
+        if (isRecentPayment) {
+          console.log(`⏰ [BookingsService] Paiement récent ignoré (délai de grâce): ${paymentId}`);
+          continue; // Ignorer les paiements récents
+        }
+        
+        // Paiement sans booking correspondant (et pas récent)
         const retreatId = payment.metadata?.retreatId;
         const retreatName = payment.metadata?.retreatName || 'N/A';
         let sessionDate = payment.metadata?.sessionDate;
@@ -585,36 +609,75 @@ export class BookingsService {
     };
   }
 
-  // Confirmer manuellement une réservation avec un PaymentIntent Stripe
-  async manuallyConfirmBooking(bookingId: string, stripePaymentIntentId: string): Promise<Booking> {
-    console.log(`✅ [BookingsService] Confirmation manuelle de la réservation ${bookingId} avec PaymentIntent ${stripePaymentIntentId}`);
 
-    const booking = await this.bookingModel.findById(bookingId);
-    if (!booking) {
-      throw new NotFoundException('Réservation non trouvée');
+  // Créer un booking manuellement par l'admin (non-Stripe)
+  async createBookingByAdmin(createBookingDto: CreateBookingDto): Promise<Booking> {
+    const { retreatId, nbPlaces, participants, billingAddress, notes, statut } = createBookingDto;
+    
+    // Conversion des dates string vers Date si nécessaire
+    const dateStart = typeof createBookingDto.dateStart === 'string' 
+      ? new Date(createBookingDto.dateStart) 
+      : createBookingDto.dateStart;
+    const dateEnd = typeof createBookingDto.dateEnd === 'string' 
+      ? new Date(createBookingDto.dateEnd) 
+      : createBookingDto.dateEnd;
+
+    console.log('👨‍💼 [ADMIN] Création manuelle d\'un booking...', {
+      retreatId,
+      date: dateStart,
+      nbPlaces,
+      statut: statut || 'CONFIRMED'
+    });
+
+    // Vérifier que la retraite existe
+    const retreat = await this.retreatModel.findById(retreatId).exec();
+    if (!retreat) {
+      throw new NotFoundException('Retraite non trouvée');
     }
 
-    if (booking.statut !== BookingStatus.PENDING) {
-      throw new BadRequestException('Cette réservation n\'est pas en attente');
+    // Vérifier qu'il y a assez de places disponibles
+    const placesDisponibles = await this.getAvailablePlaces(retreatId, dateStart);
+    if (placesDisponibles < nbPlaces) {
+      throw new ConflictException(`Seulement ${placesDisponibles} places disponibles`);
     }
 
-    // Vérifier que le PaymentIntent existe et est réussi
-    const paymentIntent = await this.stripeService.getPaymentIntent(stripePaymentIntentId);
-    if (paymentIntent.status !== 'succeeded') {
-      throw new BadRequestException('Le PaymentIntent n\'est pas réussi');
-    }
+    // Calculer le prix total
+    const prixTotal = retreat.prix * nbPlaces;
 
-    // Confirmer la réservation
-    booking.statut = BookingStatus.CONFIRMED;
-    booking.statutPaiement = PaymentStatus.PAID;
-    booking.stripePaymentIntentId = stripePaymentIntentId;
-    (booking as any).confirmationDate = new Date();
+    // Créer le booking avec isStripeBooking = false
+    const booking = new this.bookingModel({
+      userId: null, // Admin peut créer pour n'importe qui
+      isGuest: true, // Par défaut en tant qu'invité
+      isStripeBooking: false, // ← FALSE car créé manuellement par admin
+      retreatId: new Types.ObjectId(retreatId),
+      // Informations de la retraite au moment de la réservation
+      retreatName: retreat.titreCard,
+      retreatAddress: retreat.adresseRdv,
+      retreatHeureArrivee: retreat.dates?.[0]?.heureArrivee,
+      retreatHeureDepart: retreat.dates?.[0]?.heureDepart,
+      dateStart,
+      dateEnd,
+      nbPlaces,
+      prixTotal,
+      participants: participants,
+      billingAddress: billingAddress,
+      statut: statut || BookingStatus.CONFIRMED, // Par défaut confirmé
+      statutPaiement: PaymentStatus.PAID, // Admin considère comme payé
+      notes: notes || 'Créé manuellement par l\'admin',
+    });
 
-    await booking.save();
+    const savedBooking = await booking.save();
 
-    console.log(`✅ [BookingsService] Réservation ${bookingId} confirmée manuellement`);
+    console.log('✅ [ADMIN] Booking créé manuellement avec succès:', {
+      bookingId: savedBooking._id,
+      retreatId,
+      nbPlaces,
+      prixTotal,
+      statut: savedBooking.statut,
+      isStripeBooking: savedBooking.isStripeBooking
+    });
 
-    return booking;
+    return savedBooking;
   }
 
   // Supprimer un booking par ID (pour annulation manuelle)

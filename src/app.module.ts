@@ -10,6 +10,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 // Import du module de planification (cron jobs)
 import { ScheduleModule } from '@nestjs/schedule';
 
+// Import du module Throttler pour le rate limiting
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+
 // Import de nos modules personnalisés
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -25,6 +29,12 @@ import { StripeModule } from './modules/stripe/stripe.module';
     ConfigModule.forRoot({
       isGlobal: true, // Disponible dans tous les modules
     }),
+    
+    // Configuration du rate limiting (limitation des requêtes)
+    ThrottlerModule.forRoot([{
+      ttl: 60000,        // 1 minute (en millisecondes)
+      limit: 100,        // 100 requêtes par minute par IP
+    }]),
     
     // Connexion à MongoDB
     MongooseModule.forRoot(
@@ -47,6 +57,12 @@ import { StripeModule } from './modules/stripe/stripe.module';
   controllers: [],
   
   // Services globaux (si nécessaire)
-  providers: [],
+  providers: [
+    // Activation globale du rate limiting
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

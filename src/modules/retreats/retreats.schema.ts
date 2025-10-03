@@ -84,9 +84,6 @@ export class Retreat {
     heureDepart?: string;
   }>;
 
-  @Prop({ default: 0 })
-  placesReservees: number;
-
   @Prop({ default: false })
   bientotDisponible: boolean;
 

@@ -27,8 +27,8 @@ export class BookingsCronService {
     }
   }
 
-  // Vérifier les incohérences de paiement toutes les 30 secondes (pour test)
-  @Cron('0 */30 * * * *') // Toutes les 30 secondes
+  // Vérifier les incohérences de paiement toutes les 30 minutes
+  @Cron('0 */30 * * * *') // Toutes les 30 minutes
   async checkPaymentDiscrepancies() {
     try {
       console.log('🔍 [Cron] Vérification automatique des incohérences de paiement...');

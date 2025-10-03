@@ -13,6 +13,9 @@ import { UsersCronService } from './users.cron';
 // Import du module email
 import { EmailModule } from '../email/email.module';
 
+// Import du guard admin
+import { AdminGuard } from '../../common/guards/admin.guard';
+
 @Module({
   imports: [
     // Configuration des modèles MongoDB
@@ -30,7 +33,8 @@ import { EmailModule } from '../email/email.module';
   // Services disponibles dans ce module
   providers: [
     UsersService,        // Service principal de gestion des utilisateurs
-    UsersCronService    // Service de nettoyage automatique
+    UsersCronService,    // Service de nettoyage automatique
+    AdminGuard           // Guard pour vérifier le rôle admin
   ],
   
   // Contrôleurs qui exposent les routes API

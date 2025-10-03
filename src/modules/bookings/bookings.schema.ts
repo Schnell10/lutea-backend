@@ -2,17 +2,17 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 export enum BookingStatus {
-  PENDING = 'en_attente',
-  CONFIRMED = 'confirmée',
-  CANCELLED = 'annulée',
-  COMPLETED = 'terminée',
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED',
 }
 
 export enum PaymentStatus {
-  PENDING = 'en_attente',
-  PAID = 'payé',
-  FAILED = 'échoué',
-  REFUNDED = 'remboursé',
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
 }
 
 export type BookingDocument = Booking & Document;
@@ -27,8 +27,24 @@ export class Booking {
   @Prop({ required: true, default: false })
   isGuest: boolean;
 
+  @Prop({ required: true, default: true })
+  isStripeBooking: boolean;
+
   @Prop({ type: Types.ObjectId, ref: 'Retreat', required: true })
   retreatId: Types.ObjectId;
+
+  // Informations de la retraite au moment de la réservation (pour éviter les problèmes si la retraite est supprimée)
+  @Prop({ required: true })
+  retreatName: string;
+
+  @Prop({ required: false })
+  retreatAddress?: string;
+
+  @Prop({ required: false })
+  retreatHeureArrivee?: string;
+
+  @Prop({ required: false })
+  retreatHeureDepart?: string;
 
   @Prop({ required: true })
   dateStart: Date;
@@ -123,11 +139,3 @@ BookingSchema.index({
   dateStart: 1 
 });
 
-// Validation : vérifier que les dates sont cohérentes avec la retraite
-BookingSchema.pre('save', function(next) {
-  if (this.isModified('dateStart') || this.isModified('dateEnd')) {
-    // TODO: Vérifier que les dates correspondent à une session de la retraite
-    // TODO: Vérifier qu'il y a assez de places disponibles
-  }
-  next();
-});

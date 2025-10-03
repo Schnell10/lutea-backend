@@ -58,6 +58,20 @@ export class User {
   @Prop({ default: 0 })
   verificationCodeAttempts?: number; // Nombre d'essais sur le code actif
 
+  // RÉINITIALISATION DE MOT DE PASSE
+  @Prop()
+  passwordResetToken?: string;        // Token de réinitialisation
+
+  @Prop()
+  passwordResetExpires?: Date;        // Expiration du token
+
+  // RATE LIMITING POUR RÉINITIALISATION
+  @Prop({ default: 0 })
+  passwordResetAttempts?: number;     // Nombre de tentatives de réinitialisation
+
+  @Prop()
+  passwordResetLastAttempt?: Date;    // Dernière tentative de réinitialisation
+
   // INFORMATIONS DE CONTACT (OBLIGATOIRES)
   @Prop({ required: true })
   phone: string;                   // Téléphone
@@ -142,6 +156,10 @@ UserSchema.index({ role: 1 });
 // createdAt: -1 : Index sur la date de création (-1 = ordre décroissant)
 // Utile pour trier les utilisateurs par date de création
 UserSchema.index({ createdAt: -1 });
+
+// passwordResetToken: 1 : Index sur le token de réinitialisation
+// Utile pour les recherches rapides de token
+UserSchema.index({ passwordResetToken: 1 });
 
 // Index pour le schéma temporaire
 TemporaryUserSchema.index({ expiresAt: 1 }); // Pour nettoyage automatique

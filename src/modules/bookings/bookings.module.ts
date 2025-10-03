@@ -10,6 +10,9 @@ import { StripeModule } from '../stripe/stripe.module';
 import { EmailModule } from '../email/email.module';
 import { PdfGeneratorService } from '../email/pdf-generator.service';
 import { EmailService } from '../email/email.service';
+import { AdminGuard } from '../../common/guards/admin.guard';
+import { UsersModule } from '../users/users.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -19,10 +22,12 @@ import { EmailService } from '../email/email.service';
       { name: User.name, schema: UserSchema }
     ]),
     forwardRef(() => StripeModule),
-    EmailModule
+    EmailModule,
+    UsersModule,
+    AuthModule
   ],
   controllers: [BookingsController],
-  providers: [BookingsService, BookingsCronService, PdfGeneratorService, EmailService],
+  providers: [BookingsService, BookingsCronService, PdfGeneratorService, EmailService, AdminGuard],
   exports: [BookingsService]
 })
 export class BookingsModule {}

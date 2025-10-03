@@ -15,6 +15,7 @@ import type { Response } from 'express';
 
 // Import de notre service d'authentification
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
 
 // Import des guards de sécurité
 // LocalAuthGuard : Vérifie l'email et le mot de passe lors de la connexion
@@ -22,10 +23,17 @@ import { AuthService } from './auth.service';
 // AdminGuard : Vérifie que l'utilisateur a le rôle admin
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { AdminGuard } from './guards/admin.guard';
+import { AdminGuard } from '../../common/guards/admin.guard';
 
-// Import du DTO pour la création d'utilisateur
+// Import des DTOs pour la création d'utilisateur et l'authentification
 import { CreateUserDto } from '../users/dto/users.dto';
+import { 
+  VerifyCodeDto, 
+  FinalizeLoginDto, 
+  RequestPasswordResetDto, 
+  ResetPasswordDto, 
+  ValidateEmailDto 
+} from './dto/auth.dto';
 
 // Décorateur Controller : Indique que cette classe gère les routes /auth
 @Controller('auth')
@@ -34,7 +42,10 @@ export class AuthController {
   // Constructeur avec injection de dépendance
   // private readonly : Crée une propriété privée en lecture seule
   // NestJS va automatiquement créer une instance de AuthService et l'injecter ici
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService
+  ) {}
 
   // INSCRIPTION
   // @Post('register') : Route POST /auth/register
@@ -135,19 +146,6 @@ export class AuthController {
     return { message: 'Déconnexion réussie. Cookies supprimés.' };
   }
 
-  // GÉNÉRER CODE DE VÉRIFICATION (admin)
-  // @Post('2fa/generate') : Route POST /auth/2fa/generate
-  // @UseGuards(JwtAuthGuard) : Protection - utilisateur doit être connecté
-  // @HttpCode(HttpStatus.OK) : Force le code de statut HTTP 200
-  @Post('2fa/generate')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async generateVerificationCode(@Request() req) {
-    // req.user.email : Email de l'utilisateur connecté (mis par JwtAuthGuard)
-    // this.authService.generateVerificationCode() : Génère le code 2FA
-    // Note : La vérification du rôle admin se fait dans le service
-    return this.authService.generateVerificationCode(req.user.email);
-  }
 
   // FINALISER CONNEXION ADMIN AVEC 2FA
   // @Post('2fa/finalize') : Route POST /auth/2fa/finalize
@@ -156,13 +154,13 @@ export class AuthController {
   @Post('2fa/finalize')
   @HttpCode(HttpStatus.OK)
   async finalizeAdminLogin(
-    @Body() body: { email: string, code: string },  // Email et code 2FA
+    @Body() finalizeLoginDto: FinalizeLoginDto,  // DTO validé pour email et code 2FA
     @Res({ passthrough: true }) res: Response
   ) {
-    // body.email : Email de l'administrateur
-    // body.code : Code de vérification à 8 chiffres
+    // finalizeLoginDto.email : Email de l'administrateur (validé par le DTO)
+    // finalizeLoginDto.code : Code de vérification à 8 chiffres (validé par le DTO)
     // this.authService.finalizeAdminLogin() : Finalise la connexion admin
-    const tokens = await this.authService.finalizeAdminLogin(body.email, body.code);
+    const tokens = await this.authService.finalizeAdminLogin(finalizeLoginDto.email, finalizeLoginDto.code);
     
     // Émettre les cookies sécurisés
     const cookieOptions = {
@@ -196,12 +194,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyCode(
     @Request() req,                    // Objet requête complet
-    @Body() body: { code: string }     // Corps de la requête avec le code
+    @Body() verifyCodeDto: VerifyCodeDto     // DTO validé pour le code 2FA
   ) {
     // req.user.email : Email de l'utilisateur connecté
-    // body.code : Code de vérification à 8 chiffres
+    // verifyCodeDto.code : Code de vérification à 8 chiffres (validé par le DTO)
     // this.authService.verifyCode() : Vérifie le code 2FA
-    return this.authService.verifyCode(req.user.email, body.code);
+    return this.authService.verifyCode(req.user.email, verifyCodeDto.code);
   }
 
   // MOT DE PASSE OUBLIÉ - DEMANDER RÉINITIALISATION
@@ -211,11 +209,11 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(
-    @Body() body: { email: string }  // Email de l'utilisateur
+    @Body() requestPasswordResetDto: RequestPasswordResetDto  // DTO validé pour l'email
   ) {
-    // body.email : Email de l'utilisateur qui a oublié son mot de passe
-    // this.authService.forgotPassword() : Envoie le lien de réinitialisation
-    return this.authService.forgotPassword(body.email);
+    // requestPasswordResetDto.email : Email de l'utilisateur qui a oublié son mot de passe (validé par le DTO)
+    // this.usersService.forgotPassword() : Envoie le lien de réinitialisation
+    return await this.usersService.forgotPassword(requestPasswordResetDto.email);
   }
 
   // RÉINITIALISER MOT DE PASSE
@@ -225,22 +223,22 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(
-    @Body() body: { token: string, newPassword: string }  // Token et nouveau mot de passe
+    @Body() resetPasswordDto: ResetPasswordDto  // DTO validé pour token et nouveau mot de passe
   ) {
-    // body.token : Token de réinitialisation reçu par email
-    // body.newPassword : Nouveau mot de passe choisi par l'utilisateur
-    // this.authService.resetPassword() : Réinitialise le mot de passe
-    return this.authService.resetPassword(body.token, body.newPassword);
+    // resetPasswordDto.token : Token de réinitialisation reçu par email (validé par le DTO)
+    // resetPasswordDto.newPassword : Nouveau mot de passe choisi par l'utilisateur (validé par le DTO)
+    // this.usersService.resetPassword() : Réinitialise le mot de passe
+    return await this.usersService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
   }
 
   // VALIDATION EMAIL APRÈS INSCRIPTION (création du compte définitif + connexion automatique)
   @Post('validate-email')
   @HttpCode(HttpStatus.OK)
   async validateEmail(
-    @Body() body: { token: string },
+    @Body() validateEmailDto: ValidateEmailDto,  // DTO validé pour le token de validation
     @Res({ passthrough: true }) res: Response
   ) {
-    const result = await this.authService.validateEmail(body.token);
+    const result = await this.authService.validateEmail(validateEmailDto.token);
     
     // Connexion automatique après validation : émettre les cookies sécurisés
     const cookieOptions = {

@@ -15,7 +15,7 @@ const COLORS = {
 
 @Injectable()
 export class PdfGeneratorService {
-  async generateConfirmationPdf(bookingData: any, retreatData: any): Promise<Buffer> {
+  async generateConfirmationPdf(bookingData: any): Promise<Buffer> {
     // Créer un nouveau PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4
@@ -60,7 +60,7 @@ export class PdfGeneratorService {
       color: COLORS.title,
     });
     
-    page.drawText(retreatData.titreCard, {
+    page.drawText(bookingData.retreatName || 'Retraite', {
       x: 50,
       y: 675,
       size: 16,
@@ -68,57 +68,53 @@ export class PdfGeneratorService {
       color: COLORS.text,
     });
 
-    // Dates et horaires
-    if (retreatData.dates && retreatData.dates.length > 0) {
-      const firstDate = retreatData.dates[0];
-      const startDate = new Date(firstDate.start).toLocaleDateString('fr-FR');
-      const endDate = new Date(firstDate.end).toLocaleDateString('fr-FR');
-      
-      page.drawText('DATES ET HORAIRES', {
+    // Dates et horaires - utiliser les dates spécifiques du booking
+    page.drawText('DATES ET HORAIRES', {
+      x: 50,
+      y: 640,
+      size: 14,
+      font: boldFont,
+      color: COLORS.title,
+    });
+    
+    const startDate = new Date(bookingData.dateStart).toLocaleDateString('fr-FR');
+    const endDate = new Date(bookingData.dateEnd).toLocaleDateString('fr-FR');
+    
+    page.drawText(`${startDate} au ${endDate}`, {
+      x: 50,
+      y: 615,
+      size: 12,
+      font: font,
+      color: COLORS.text,
+    });
+
+    // Afficher les heures si disponibles
+    if (bookingData.retreatHeureArrivee && bookingData.retreatHeureDepart) {
+      page.drawText(`Rendez-vous: ${bookingData.retreatHeureArrivee} - Départ: ${bookingData.retreatHeureDepart}`, {
         x: 50,
-        y: 640,
-        size: 14,
-        font: boldFont,
-        color: COLORS.title,
-      });
-      
-      page.drawText(`${startDate} au ${endDate}`, {
-        x: 50,
-        y: 615,
+        y: 595,
         size: 12,
         font: font,
         color: COLORS.text,
       });
-
-      if (firstDate.heureArrivee && firstDate.heureDepart) {
-        page.drawText(`Rendez-vous: ${firstDate.heureArrivee} - Départ: ${firstDate.heureDepart}`, {
-          x: 50,
-          y: 595,
-          size: 12,
-          font: font,
-          color: COLORS.text,
-        });
-      }
     }
 
     // Lieu de rendez-vous
-    if (retreatData.adresseRdv) {
-      page.drawText('LIEU DE RENDEZ-VOUS', {
-        x: 50,
-        y: 560,
-        size: 14,
-        font: boldFont,
-        color: COLORS.title,
-      });
-      
-      page.drawText(retreatData.adresseRdv, {
-        x: 50,
-        y: 535,
-        size: 12,
-        font: font,
-        color: COLORS.text,
-      });
-    }
+    page.drawText('LIEU DE RENDEZ-VOUS', {
+      x: 50,
+      y: 560,
+      size: 14,
+      font: boldFont,
+      color: COLORS.title,
+    });
+    
+    page.drawText(bookingData.retreatAddress || 'Lieu non disponible', {
+      x: 50,
+      y: 535,
+      size: 12,
+      font: font,
+      color: COLORS.text,
+    });
 
     // Prix total - style normal comme le texte
     page.drawText('PRIX TOTAL TTC', {

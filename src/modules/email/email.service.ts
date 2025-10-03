@@ -14,10 +14,9 @@ export class EmailService {
 
   // ENVOI DU CODE 2FA
   async send2FACode(email: string, code: string): Promise<boolean> {
-    console.log(`📧 [EmailService] Envoi code 2FA à: ${email}`);
     
     try {
-      const result = await this.resend.emails.send({
+      await this.resend.emails.send({
         from: luteaConfig.emails.resend,
         to: [email],
         subject: 'Code de vérification 2FA - Lutea',
@@ -37,7 +36,7 @@ export class EmailService {
         `
       });
 
-      console.log(`✅ [EmailService] Code 2FA envoyé avec succès à: ${email}`, result.data?.id || 'ID non disponible');
+      console.log(`✅ [EmailService] Code 2FA envoyé à: ${email}`);
       return true;
     } catch (error) {
       console.log(`❌ [EmailService] Erreur envoi code 2FA à: ${email}`, error.message);

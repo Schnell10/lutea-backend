@@ -174,7 +174,6 @@ export class AuthService {
         throw new UnauthorizedException('Erreur lors de la génération du code 2FA');
       }
       
-      console.log(`✅ [AuthService] Code 2FA envoyé: ${email}`);
       // Retourner un objet spécial indiquant que la 2FA est requise
       const userObj = user.toObject();
       const { password: _, ...result } = userObj;
@@ -386,51 +385,6 @@ export class AuthService {
     }
   }
 
-  // GÉNÉRATION DU CODE DE VÉRIFICATION (pour admin)
-  // email: string : Email de l'administrateur
-  // Retourne un message de confirmation
-  async generateVerificationCode(email: string): Promise<{ message: string }> {
-    // Validation que l'email est fourni
-    if (!email) {
-      throw new BadRequestException('Email requis');
-    }
-
-    // Recherche de l'utilisateur par email
-    const user = await this.usersService.findByEmail(email);
-    
-    // Vérification que l'utilisateur existe
-    if (!user) {
-      throw new UnauthorizedException('Utilisateur non trouvé');
-    }
-
-    // Vérification que l'utilisateur est administrateur
-    if (user.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Double authentification réservée aux administrateurs');
-    }
-
-    // Vérification que le compte existe
-    // Note: isActive a été supprimé, on vérifie juste l'existence
-
-    // Génération d'un code à la longueur configurée
-    // securityConfig.twoFactor.codeLength : Longueur depuis la config centralisée
-    const codeLength = securityConfig.twoFactor.codeLength;
-    const minCode = Math.pow(10, codeLength - 1);
-    const maxCode = Math.pow(10, codeLength) - 1;
-    const code = Math.floor(minCode + Math.random() * (maxCode - minCode + 1)).toString();
-    
-    // Calcul de la date d'expiration depuis la config
-    // securityConfig.twoFactor.codeExpiry : Durée depuis la config centralisée
-    const expiresAt = new Date(Date.now() + securityConfig.twoFactor.codeExpiry * 60 * 1000);
-
-    // Sauvegarde du code en base de données
-    await this.usersService.updateVerificationCode(email, code, expiresAt);
-
-    // TODO: Envoyer le code par email
-    // Pour l'instant, affichage en console (développement uniquement)
-    console.log(`🔐 Code de vérification pour ${email}: ${code}`);
-
-    return { message: 'Code de vérification envoyé par email' };
-  }
 
   // VÉRIFICATION DU CODE (pour admin)
   // email: string : Email de l'administrateur
@@ -475,57 +429,6 @@ export class AuthService {
     return this.login(user as UserDocument);
   }
 
-  // MOT DE PASSE OUBLIÉ
-  // email: string : Email de l'utilisateur qui a oublié son mot de passe
-  // Retourne un message de confirmation
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    // Validation que l'email est fourni
-    if (!email) {
-      throw new BadRequestException('Email requis');
-    }
-
-    // Recherche de l'utilisateur par email
-    const user = await this.usersService.findByEmail(email);
-    
-    // Vérification que l'utilisateur existe
-    if (!user) {
-      // Pour la sécurité, ne pas révéler si l'email existe ou non
-      return { message: 'Si cet email existe dans notre base, un lien de réinitialisation a été envoyé.' };
-    }
-
-    // Générer un token de réinitialisation sécurisé
-    const resetToken = await this.usersService.generatePasswordResetToken(email);
-    
-    // Envoyer l'email avec le lien de réinitialisation
-    await this.usersService.sendPasswordResetEmail(email, resetToken);
-
-    return { message: 'Si cet email existe dans notre base, un lien de réinitialisation a été envoyé.' };
-  }
-
-  // RÉINITIALISER MOT DE PASSE
-  // token: string : Token de réinitialisation reçu par email
-  // newPassword: string : Nouveau mot de passe choisi par l'utilisateur
-  // Retourne un message de confirmation
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
-    // Validation des entrées
-    if (!token || !newPassword) {
-      throw new BadRequestException('Token et nouveau mot de passe requis');
-    }
-
-    // Vérification de la force du nouveau mot de passe
-    if (newPassword.length < 8) {
-      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères');
-    }
-
-    // Réinitialisation du mot de passe via le service utilisateur
-    const success = await this.usersService.resetPasswordWithToken(token, newPassword);
-    
-    if (!success) {
-      throw new UnauthorizedException('Token de réinitialisation invalide ou expiré');
-    }
-
-    return { message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.' };
-  }
 
   // DÉCONNEXION
   // Retourne un message de confirmation
