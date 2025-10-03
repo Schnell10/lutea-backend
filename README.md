@@ -387,7 +387,6 @@ GET  /bookings/admin/stats # Statistiques
   pdfUrl?: string,
   places: number,
   prix: number,
-  nbJours: number,
   dates: Array<{
     start: Date,
     end: Date,

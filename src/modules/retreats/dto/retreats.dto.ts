@@ -57,10 +57,6 @@ export class CreateRetreatDto {
   @Min(0)
   prix: number;
 
-  @IsNumber()
-  @Min(0)
-  nbJours: number;
-
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -125,11 +121,6 @@ export class UpdateRetreatDto {
   @IsNumber()
   @Min(0)
   prix?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  nbJours?: number;
 
   @IsOptional()
   @IsArray()

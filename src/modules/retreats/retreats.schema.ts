@@ -55,9 +55,6 @@ export class Retreat {
   @Prop({ required: true, min: 0 })
   prix: number;
 
-  @Prop({ required: true, min: 0 })
-  nbJours: number;
-
   @Prop({ required: true })
   adresseRdv: string; // Adresse de rendez-vous fixe pour la retraite
 
