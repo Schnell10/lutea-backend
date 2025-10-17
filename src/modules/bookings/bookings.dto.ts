@@ -11,7 +11,8 @@ import {
   Min, 
   Max,
   IsObject,
-  IsEnum
+  IsEnum,
+  IsMongoId
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BookingStatus } from './bookings.schema';
@@ -104,9 +105,13 @@ export class CreateBookingDto {
   @IsOptional()
   notes?: string;
 
-  @IsEnum(BookingStatus, { message: 'Le statut doit être une valeur valide (PENDING, CONFIRMED, CANCELLED, COMPLETED)' })
+  @IsEnum(BookingStatus, { message: 'Le statut doit être une valeur valide (PENDING, CONFIRMED, CANCELLED)' })
   @IsOptional()
   statut?: BookingStatus;
+
+  @IsMongoId({ message: 'L\'ID de l\'utilisateur doit être un ID MongoDB valide' })
+  @IsOptional()
+  userId?: string;
 }
 
 // DTO pour vérifier les places disponibles

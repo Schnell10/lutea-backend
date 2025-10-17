@@ -15,6 +15,17 @@ export class DateDto {
   @IsOptional()
   @IsString()
   heureDepart?: string;
+
+  @IsNumber()
+  @Min(0)
+  prix: number;
+
+  @IsNumber()
+  @Min(1)
+  places: number;
+
+  @IsString()
+  adresseRdv: string;
 }
 
 export class CreateRetreatDto {
@@ -38,24 +49,14 @@ export class CreateRetreatDto {
   @IsString()
   texteModal: string;
 
+  @IsOptional()
   @IsString()
-  adresseRdv: string;
-
-  @IsString()
-  boutonPdfLabel: string;
+  boutonPdfLabel?: string;
 
   @IsOptional()
   @ValidateIf((o) => o.pdfUrl !== undefined && o.pdfUrl !== null && o.pdfUrl !== '')
   @IsUrl({}, { message: 'pdfUrl doit être une URL valide' })
   pdfUrl?: string;
-
-  @IsNumber()
-  @Min(1)
-  places: number;
-
-  @IsNumber()
-  @Min(0)
-  prix: number;
 
   @IsOptional()
   @IsArray()
@@ -65,7 +66,7 @@ export class CreateRetreatDto {
 
   @IsOptional()
   @IsBoolean()
-  bientotDisponible?: boolean;
+  aVenir?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -101,26 +102,12 @@ export class UpdateRetreatDto {
 
   @IsOptional()
   @IsString()
-  adresseRdv?: string;
-
-  @IsOptional()
-  @IsString()
   boutonPdfLabel?: string;
 
   @IsOptional()
   @ValidateIf((o) => o.pdfUrl !== undefined && o.pdfUrl !== null && o.pdfUrl !== '')
   @IsUrl({}, { message: 'pdfUrl doit être une URL valide' })
   pdfUrl?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  places?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  prix?: number;
 
   @IsOptional()
   @IsArray()
@@ -130,7 +117,7 @@ export class UpdateRetreatDto {
 
   @IsOptional()
   @IsBoolean()
-  bientotDisponible?: boolean;
+  aVenir?: boolean;
 
   @IsOptional()
   @IsBoolean()

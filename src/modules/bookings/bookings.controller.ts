@@ -4,13 +4,11 @@ import {
   Post, 
   Body, 
   Patch, 
-  Delete,
   Param, 
   UseGuards,
   Request,
   HttpCode,
   HttpStatus,
-  BadRequestException,
   Res,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
@@ -304,26 +302,12 @@ export class BookingsController {
     return this.bookingsService.cancelBooking(id, cancelBookingDto.raison);
   }
 
-
-  // Supprimer un booking (admin seulement)
+  // Créer un booking manuellement (admin seulement)
   @UseGuards(JwtAuthGuard, AdminGuard)
-  @Delete('admin/:id')
-  @HttpCode(HttpStatus.OK)
-  async deleteBooking(@Param('id') id: string) {
-    try {
-      // Vérifier que le booking existe
-      const booking = await this.bookingsService.findById(id);
-      if (!booking) {
-        throw new BadRequestException('Booking non trouvé');
-      }
-
-      await this.bookingsService.deleteBooking(id);
-      return {
-        message: 'Booking supprimé avec succès',
-        bookingId: id
-      };
-    } catch (error) {
-      throw new BadRequestException(`Erreur lors de la suppression du booking: ${error.message}`);
-    }
+  @Post('admin/create')
+  @HttpCode(HttpStatus.CREATED)
+  async createBookingByAdmin(@Body() createBookingDto: CreateBookingDto) {
+    console.log('👨‍💼 [ADMIN] Création manuelle d\'une réservation...');
+    return this.bookingsService.createBookingByAdmin(createBookingDto);
   }
 }

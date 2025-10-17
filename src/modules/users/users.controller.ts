@@ -7,6 +7,7 @@ import {
   Delete, 
   Param, 
   Body, 
+  Query,
   UseGuards,
   ForbiddenException
 } from '@nestjs/common';
@@ -174,5 +175,35 @@ export class UsersController {
   @Get('check-temporary/:email')
   async checkTemporaryUser(@Param('email') email: string) {
     return this.usersService.checkTemporaryUserStatus(email);
+  }
+
+  // ROUTE : GET /users/admin/search-by-email?email=xxx
+  // Recherche un utilisateur par email (ADMIN SEULEMENT)
+  @Get('admin/search-by-email')
+  @UseGuards(AdminGuard)
+  async searchUserByEmail(@Query('email') email: string) {
+    console.log('🔍 [ADMIN] Recherche d\'utilisateur par email:', email);
+    
+    if (!email) {
+      throw new ForbiddenException('Email requis');
+    }
+
+    const user = await this.usersService.findByEmail(email);
+    
+    if (!user) {
+      return { found: false, user: null };
+    }
+    
+    // Convertir le document Mongoose en objet et retourner sans le mot de passe
+    const userObject = (user as any).toObject ? (user as any).toObject() : user;
+    const { password: _password, ...userWithoutPassword } = userObject;
+    
+    console.log('✅ [ADMIN] Utilisateur trouvé et converti:', {
+      firstName: userWithoutPassword.firstName,
+      lastName: userWithoutPassword.lastName,
+      email: userWithoutPassword.email
+    });
+    
+    return { found: true, user: userWithoutPassword };
   }
 }

@@ -27,8 +27,8 @@ export class RetreatsService {
     
     // Filtrage côté JS (plus fiable pour les arrays de dates)
     const filteredRetreats = retreats.filter(retreat => {
-      // Retraites "bientôt disponibles" (peuvent avoir ou pas de dates)
-      if (retreat.bientotDisponible) {
+      // Retraites "à venir" (peuvent avoir ou pas de dates)
+      if (retreat.aVenir) {
         return true;
       }
       

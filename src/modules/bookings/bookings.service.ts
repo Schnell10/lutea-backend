@@ -95,11 +95,28 @@ export class BookingsService {
       throw new ConflictException(`Seulement ${placesDisponibles} places disponibles`);
     }
 
-    // Calculer le prix total
-    const prixTotal = retreat.prix * nbPlaces;
+    // Trouver le bloc de dates sélectionné pour récupérer le prix
+    const selectedDateBlock = retreat.dates?.find(date => {
+      if (!dateStart || !date.start) return false;
+      const dateStartObj = new Date(date.start);
+      const dateEndObj = new Date(date.end);
+      const selectedDate = new Date(dateStart);
+      
+      // Vérifier si la date sélectionnée est dans ce bloc de dates
+      return selectedDate >= dateStartObj && selectedDate <= dateEndObj;
+    });
+
+    // Calculer le prix total avec le prix de la date sélectionnée
+    const prixUnitaire = selectedDateBlock?.prix || retreat.prix || 0;
+    const prixTotal = prixUnitaire * nbPlaces;
 
     console.log('💰 [BOOKING] Calcul du prix:', {
-      prixUnitaire: retreat.prix,
+      selectedDateBlock: selectedDateBlock ? {
+        start: selectedDateBlock.start,
+        end: selectedDateBlock.end,
+        prix: selectedDateBlock.prix
+      } : null,
+      prixUnitaire,
       nbPlaces,
       prixTotal
     });
@@ -108,7 +125,7 @@ export class BookingsService {
     console.log('🎯 ===========================================');
     console.log('🎯 [BOOKING] CALCUL DU PRIX');
     console.log('🎯 ===========================================');
-    console.log('🎯 Prix unitaire:', retreat.prix, '€');
+    console.log('🎯 Prix unitaire:', prixUnitaire, '€');
     console.log('🎯 Nombre de places:', nbPlaces);
     console.log('🎯 Prix total:', prixTotal, '€');
     console.log('🎯 ===========================================');
@@ -121,7 +138,7 @@ export class BookingsService {
       retreatId: new Types.ObjectId(retreatId),
       // Informations spécifiques de la retraite sélectionnée (viennent du tunnel de réservation)
       retreatName: createBookingDto.retreatName || retreat.titreCard,
-      retreatAddress: createBookingDto.retreatAddress || retreat.adresseRdv,
+      retreatAddress: createBookingDto.retreatAddress || selectedDateBlock?.adresseRdv || retreat.adresseRdv,
       retreatHeureArrivee: createBookingDto.retreatHeureArrivee,
       retreatHeureDepart: createBookingDto.retreatHeureDepart,
       dateStart,
@@ -340,9 +357,20 @@ export class BookingsService {
       throw new NotFoundException('Retraite non trouvée');
     }
 
+    // Trouver la date correspondante dans retreat.dates[]
+    const selectedDate = retreat.dates?.find(d => 
+      new Date(d.start).getTime() === dateObj.getTime()
+    );
+
+    if (!selectedDate) {
+      console.error('❌ [PLACES] Date non trouvée dans la retraite:', dateObj);
+      throw new NotFoundException('Date de retraite non trouvée');
+    }
+
     console.log(`📋 [PLACES] Retraite trouvée:`, {
       titreCard: retreat.titreCard,
-      capaciteMax: retreat.places
+      date: dateObj,
+      capaciteMax: selectedDate.places
     });
 
     // Compter les places déjà réservées (bookings confirmés ET pending)
@@ -372,13 +400,14 @@ export class BookingsService {
     ]);
 
     const totalPlacesReservees = placesReservees.length > 0 ? placesReservees[0].totalPlaces : 0;
-    const placesDisponibles = retreat.places - totalPlacesReservees;
+    const placesDisponibles = selectedDate.places - totalPlacesReservees;
 
     console.log(`✅ [PLACES] Calcul terminé:`, {
-      capaciteMax: retreat.places,
+      capaciteMax: selectedDate.places,
       placesReservees: totalPlacesReservees,
       placesDisponibles: Math.max(0, placesDisponibles),
-      retraite: retreat.titreCard
+      retraite: retreat.titreCard,
+      date: dateObj
     });
 
     return Math.max(0, placesDisponibles);
@@ -622,11 +651,17 @@ export class BookingsService {
       ? new Date(createBookingDto.dateEnd) 
       : createBookingDto.dateEnd;
 
+    // Extraire le userId s'il est fourni (quand admin trouve un compte existant)
+    const userId: string | null = (createBookingDto as any).userId || null;
+    const isGuest = !userId; // Si pas de userId, c'est un invité
+
     console.log('👨‍💼 [ADMIN] Création manuelle d\'un booking...', {
       retreatId,
       date: dateStart,
       nbPlaces,
-      statut: statut || 'CONFIRMED'
+      statut: statut || 'CONFIRMED',
+      userId: userId ? `Associé à l'utilisateur ${userId}` : 'Invité (sans compte)',
+      isGuest
     });
 
     // Vérifier que la retraite existe
@@ -646,8 +681,8 @@ export class BookingsService {
 
     // Créer le booking avec isStripeBooking = false
     const booking = new this.bookingModel({
-      userId: null, // Admin peut créer pour n'importe qui
-      isGuest: true, // Par défaut en tant qu'invité
+      userId: userId ? new Types.ObjectId(userId) : null, // Associer au compte si trouvé
+      isGuest: isGuest, // false si utilisateur trouvé, true sinon
       isStripeBooking: false, // ← FALSE car créé manuellement par admin
       retreatId: new Types.ObjectId(retreatId),
       // Informations de la retraite au moment de la réservation
@@ -674,24 +709,11 @@ export class BookingsService {
       nbPlaces,
       prixTotal,
       statut: savedBooking.statut,
-      isStripeBooking: savedBooking.isStripeBooking
+      isStripeBooking: savedBooking.isStripeBooking,
+      userId: savedBooking.userId ? savedBooking.userId.toString() : null,
+      isGuest: savedBooking.isGuest
     });
 
     return savedBooking;
-  }
-
-  // Supprimer un booking par ID (pour annulation manuelle)
-  async deleteBooking(id: string): Promise<boolean> {
-    try {
-      const result = await this.bookingModel.findByIdAndDelete(id);
-      if (!result) {
-        throw new NotFoundException('Booking non trouvé');
-      }
-      console.log(`✅ [BookingsService] Booking ${id} supprimé avec succès`);
-      return true;
-    } catch (error) {
-      console.error(`❌ [BookingsService] Erreur lors de la suppression du booking ${id}:`, error);
-      throw error;
-    }
   }
 }

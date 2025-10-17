@@ -49,21 +49,25 @@ export class Retreat {
   @Prop({ required: false })
   pdfUrl?: string;
 
-  @Prop({ required: true, min: 1 })
-  places: number;
+  // Champs globaux (optionnels, pour rétrocompatibilité)
+  @Prop({ required: false, min: 0 })
+  prix?: number;
 
-  @Prop({ required: true, min: 0 })
-  prix: number;
+  @Prop({ required: false, min: 1 })
+  places?: number;
 
-  @Prop({ required: true })
-  adresseRdv: string; // Adresse de rendez-vous fixe pour la retraite
+  @Prop({ required: false })
+  adresseRdv?: string;
 
   @Prop({
     type: [{
       start: { type: Date, required: true },
       end: { type: Date, required: true },
       heureArrivee: { type: String, required: false },
-      heureDepart: { type: String, required: false }
+      heureDepart: { type: String, required: false },
+      prix: { type: Number, required: true, min: 0 },
+      places: { type: Number, required: true, min: 1 },
+      adresseRdv: { type: String, required: true }
     }],
     required: false, // Peut être vide pour les retraites sans dates
     validate: {
@@ -79,10 +83,13 @@ export class Retreat {
     end: Date; 
     heureArrivee?: string;
     heureDepart?: string;
+    prix: number;
+    places: number;
+    adresseRdv: string;
   }>;
 
   @Prop({ default: false })
-  bientotDisponible: boolean;
+  aVenir: boolean;
 
   @Prop({ default: true })
   isActive: boolean; // Pour activer/désactiver manuellement
@@ -92,8 +99,9 @@ export const RetreatSchema = SchemaFactory.createForClass(Retreat);
 
 // Index pour optimiser les recherches et le filtrage
 RetreatSchema.index({ isActive: 1 });
+RetreatSchema.index({ aVenir: 1 }); // Pour filtrer les retraites "à venir"
 RetreatSchema.index({ 'dates.end': 1 }); // Pour filtrer les dates passées
 RetreatSchema.index({ 'dates.start': 1 }); // Pour trier par date
+RetreatSchema.index({ 'dates.prix': 1 }); // Pour le tri par prix
+RetreatSchema.index({ 'dates.places': 1 }); // Pour le tri par capacité
 RetreatSchema.index({ createdAt: -1 });
-RetreatSchema.index({ prix: 1 }); // Pour le tri par prix
-RetreatSchema.index({ places: 1 }); // Pour le tri par capacité
