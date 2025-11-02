@@ -12,6 +12,7 @@ import { StripeService } from './stripe.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreatePaymentIntentDto, GetPaymentIntentDto } from './stripe.dto';
+import { logger } from '../../common/utils/logger';
 
 @Controller('stripe')
 export class StripeController {
@@ -26,7 +27,7 @@ export class StripeController {
   async createPaymentIntent(@Body() createPaymentIntentDto: CreatePaymentIntentDto) {
     const { amount, currency, metadata } = createPaymentIntentDto;
     
-    console.log('🚀 [Stripe] Création du PaymentIntent...', { amount, currency, metadata });
+    logger.log('🚀 [Stripe] Création du PaymentIntent...', { amount, currency, metadata });
     
     const paymentIntent = await this.stripeService.createPaymentIntent(amount, currency, metadata);
     
@@ -53,7 +54,7 @@ export class StripeController {
     @Body() body: { paymentIntentId: string }
   ): Promise<{ success: boolean; message: string }> {
     try {
-      console.log('🚫 [Stripe] Annulation du PaymentIntent:', body.paymentIntentId);
+      logger.log('🚫 [Stripe] Annulation du PaymentIntent:', body.paymentIntentId);
       
       await this.stripeService.cancelPaymentIntent(body.paymentIntentId);
       
@@ -62,7 +63,7 @@ export class StripeController {
         message: 'PaymentIntent annulé avec succès'
       };
     } catch (error) {
-      console.error('❌ [Stripe] Erreur lors de l\'annulation:', error.message);
+      logger.error('❌ [Stripe] Erreur lors de l\'annulation:', error.message);
       return {
         success: false,
         message: `Erreur lors de l'annulation: ${error.message}`
@@ -77,7 +78,7 @@ export class StripeController {
     @Req() req: any,
     @Headers('stripe-signature') signature: string
   ): Promise<{ received: boolean }> {
-    console.log('🔔 [Webhook] Réception webhook...', { 
+    logger.log('🔔 [Webhook] Réception webhook...', { 
       hasBody: !!req.body, 
       hasSignature: !!signature,
       bodyType: typeof req.body,
@@ -85,7 +86,7 @@ export class StripeController {
     });
     
     if (!signature) {
-      console.log('⚠️ [Webhook] Signature manquante, requête ignorée');
+      logger.log('⚠️ [Webhook] Signature manquante, requête ignorée');
       return { received: false };
     }
 
@@ -93,16 +94,16 @@ export class StripeController {
     const payload = req.body;
     
     if (!payload) {
-      console.error('❌ [Webhook] Body manquant');
+      logger.error('❌ [Webhook] Body manquant');
       return { received: false };
     }
 
     try {
       await this.stripeService.handleWebhook(payload, signature);
-      console.log('✅ [Webhook] Webhook traité avec succès');
+      logger.log('✅ [Webhook] Webhook traité avec succès');
       return { received: true };
     } catch (error) {
-      console.error('❌ [Webhook] Erreur lors du traitement:', error.message);
+      logger.error('❌ [Webhook] Erreur lors du traitement:', error.message);
       return { received: false };
     }
   }

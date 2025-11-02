@@ -5,8 +5,15 @@ import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier'; // désactive les règles de style
 
 export default tseslint.config(
-  // Ignorer les dossiers générés
-  { ignores: ['dist/**', 'node_modules/**'] },
+  // Ignorer les dossiers générés, fichiers de config et scripts
+  { ignores: [
+    'dist/**', 
+    'node_modules/**', 
+    'test-env-setup.js',
+    'test-all.sh',
+    'eslint.config.mjs',  // Le fichier de config ESLint lui-même
+    '*.md',               // Fichiers Markdown
+  ] },
 
   // Bases JS + TS (avec type-check)
   eslint.configs.recommended,

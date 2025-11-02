@@ -65,6 +65,11 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   country?: string;
+
+  // Token reCAPTCHA pour validation (optionnel)
+  @IsOptional()
+  @IsString()
+  token?: string;
 }
 
 // DTO POUR LA MISE À JOUR DU PROFIL

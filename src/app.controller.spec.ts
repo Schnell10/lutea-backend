@@ -15,8 +15,8 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return API welcome message', () => {
+      expect(appController.getHello()).toBe('🚀 API Lutea Backend - Système d\'authentification sécurisé');
     });
   });
 });

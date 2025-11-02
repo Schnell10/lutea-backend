@@ -11,6 +11,7 @@ import Stripe from 'stripe';
 
 // Import du DTO depuis le fichier dédié
 import { CreateBookingDto } from './bookings.dto';
+import { logger } from '../../common/utils/logger';
 
 @Injectable()
 export class BookingsService {
@@ -36,59 +37,59 @@ export class BookingsService {
       : createBookingDto.dateEnd;
 
     // 🎯 LOG DÉTAILLÉ POUR LA CRÉATION DE BOOKING
-    console.log('🎯 ===========================================');
-    console.log('🎯 [BOOKING] DÉBUT DE CRÉATION');
-    console.log('🎯 ===========================================');
-    console.log('🎯 Retreat ID:', retreatId);
-    console.log('🎯 Date:', dateStart);
-    console.log('🎯 Nombre de places:', nbPlaces);
-    console.log('🎯 Utilisateur:', userId ? `Connecté (${userId})` : 'Anonyme');
-    console.log('🎯 Statut demandé:', statut);
-    console.log('🎯 Participants:', participants.length);
-    console.log('🎯 Email principal:', participants[0]?.email);
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [BOOKING] DÉBUT DE CRÉATION');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 Retreat ID:', retreatId);
+    logger.log('🎯 Date:', dateStart);
+    logger.log('🎯 Nombre de places:', nbPlaces);
+    logger.log('🎯 Utilisateur:', userId ? `Connecté (${userId})` : 'Anonyme');
+    logger.log('🎯 Statut demandé:', statut);
+    logger.log('🎯 Participants:', participants.length);
+    logger.log('🎯 Email principal:', participants[0]?.email);
+    logger.log('🎯 ===========================================');
 
     // Vérifier que la retraite existe
     const retreat = await this.retreatModel.findById(retreatId).exec();
     if (!retreat) {
-      console.error('❌ [BOOKING] Retraite non trouvée:', retreatId);
+      logger.error('❌ [BOOKING] Retraite non trouvée:', retreatId);
       throw new NotFoundException('Retraite non trouvée');
     }
 
-    console.log('✅ [BOOKING] Retraite trouvée:', {
+    logger.log('✅ [BOOKING] Retraite trouvée:', {
       titreCard: retreat.titreCard,
       prix: retreat.prix,
       capaciteMax: retreat.places
     });
     
     // 🎯 LOG DÉTAILLÉ POUR LA RETRAITE
-    console.log('🎯 ===========================================');
-    console.log('🎯 [BOOKING] RETRAITE VALIDÉE');
-    console.log('🎯 ===========================================');
-    console.log('🎯 Titre:', retreat.titreCard);
-    console.log('🎯 Prix unitaire:', retreat.prix, '€');
-    console.log('🎯 Capacité max:', retreat.places, 'places');
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [BOOKING] RETRAITE VALIDÉE');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 Titre:', retreat.titreCard);
+    logger.log('🎯 Prix unitaire:', retreat.prix, '€');
+    logger.log('🎯 Capacité max:', retreat.places, 'places');
+    logger.log('🎯 ===========================================');
 
     // Vérifier que l'utilisateur existe (seulement si connecté)
     if (userId) {
       const user = await this.userModel.findById(userId).exec();
       if (!user) {
-        console.error('❌ [BOOKING] Utilisateur non trouvé:', userId);
+        logger.error('❌ [BOOKING] Utilisateur non trouvé:', userId);
         throw new NotFoundException('Utilisateur non trouvé');
       }
-      console.log('✅ [BOOKING] Utilisateur connecté:', {
+      logger.log('✅ [BOOKING] Utilisateur connecté:', {
         userId,
         email: user.email
       });
     } else {
-      console.log('ℹ️ [BOOKING] Utilisateur non connecté - booking anonyme');
+      logger.log('ℹ️ [BOOKING] Utilisateur non connecté - booking anonyme');
     }
 
     // Vérifier qu'il y a assez de places disponibles
     const placesDisponibles = await this.getAvailablePlaces(retreatId, dateStart);
     if (placesDisponibles < nbPlaces) {
-      console.error('❌ [BOOKING] Pas assez de places:', {
+      logger.error('❌ [BOOKING] Pas assez de places:', {
         placesDisponibles,
         nbPlacesDemandees: nbPlaces
       });
@@ -110,7 +111,7 @@ export class BookingsService {
     const prixUnitaire = selectedDateBlock?.prix || retreat.prix || 0;
     const prixTotal = prixUnitaire * nbPlaces;
 
-    console.log('💰 [BOOKING] Calcul du prix:', {
+    logger.log('💰 [BOOKING] Calcul du prix:', {
       selectedDateBlock: selectedDateBlock ? {
         start: selectedDateBlock.start,
         end: selectedDateBlock.end,
@@ -122,13 +123,13 @@ export class BookingsService {
     });
     
     // 🎯 LOG DÉTAILLÉ POUR LE CALCUL DU PRIX
-    console.log('🎯 ===========================================');
-    console.log('🎯 [BOOKING] CALCUL DU PRIX');
-    console.log('🎯 ===========================================');
-    console.log('🎯 Prix unitaire:', prixUnitaire, '€');
-    console.log('🎯 Nombre de places:', nbPlaces);
-    console.log('🎯 Prix total:', prixTotal, '€');
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [BOOKING] CALCUL DU PRIX');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 Prix unitaire:', prixUnitaire, '€');
+    logger.log('🎯 Nombre de places:', nbPlaces);
+    logger.log('🎯 Prix total:', prixTotal, '€');
+    logger.log('🎯 ===========================================');
 
     // Créer le booking (avec ou sans userId)
     const booking = new this.bookingModel({
@@ -154,7 +155,7 @@ export class BookingsService {
 
     const savedBooking = await booking.save();
 
-    console.log('✅ [BOOKING] Booking créé avec succès:', {
+    logger.log('✅ [BOOKING] Booking créé avec succès:', {
       bookingId: savedBooking._id,
       retreatId,
       nbPlaces,
@@ -164,17 +165,17 @@ export class BookingsService {
     });
     
     // 🎯 LOG DÉTAILLÉ POUR LA CRÉATION RÉUSSIE
-    console.log('🎯 ===========================================');
-    console.log('🎯 [BOOKING] CRÉATION RÉUSSIE');
-    console.log('🎯 ===========================================');
-    console.log('🎯 Booking ID:', savedBooking._id);
-    console.log('🎯 Statut:', savedBooking.statut);
-    console.log('🎯 Statut paiement:', savedBooking.statutPaiement);
-    console.log('🎯 Nombre de places:', savedBooking.nbPlaces);
-    console.log('🎯 Prix total:', savedBooking.prixTotal, '€');
-    console.log('🎯 Utilisateur:', savedBooking.userId ? 'Connecté' : 'Anonyme');
-    console.log('🎯 Date création:', (savedBooking as any).createdAt);
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [BOOKING] CRÉATION RÉUSSIE');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 Booking ID:', savedBooking._id);
+    logger.log('🎯 Statut:', savedBooking.statut);
+    logger.log('🎯 Statut paiement:', savedBooking.statutPaiement);
+    logger.log('🎯 Nombre de places:', savedBooking.nbPlaces);
+    logger.log('🎯 Prix total:', savedBooking.prixTotal, '€');
+    logger.log('🎯 Utilisateur:', savedBooking.userId ? 'Connecté' : 'Anonyme');
+    logger.log('🎯 Date création:', (savedBooking as any).createdAt);
+    logger.log('🎯 ===========================================');
 
     return savedBooking;
   }
@@ -183,12 +184,12 @@ export class BookingsService {
   // Valider un booking après paiement réussi
   async confirmBooking(bookingId: string, stripePaymentIntentId: string): Promise<Booking> {
     // 🎯 LOG DÉTAILLÉ POUR LA CONFIRMATION DE BOOKING
-    console.log('🎯 ===========================================');
-    console.log('🎯 [BOOKING] DÉBUT DE CONFIRMATION');
-    console.log('🎯 ===========================================');
-    console.log('🎯 Booking ID:', bookingId);
-    console.log('🎯 PaymentIntent ID:', stripePaymentIntentId);
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [BOOKING] DÉBUT DE CONFIRMATION');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 Booking ID:', bookingId);
+    logger.log('🎯 PaymentIntent ID:', stripePaymentIntentId);
+    logger.log('🎯 ===========================================');
     
     if (!Types.ObjectId.isValid(bookingId)) {
       throw new BadRequestException('ID de booking invalide');
@@ -204,15 +205,15 @@ export class BookingsService {
     }
 
     // 🎯 LOG DÉTAILLÉ POUR L'ÉTAT AVANT CONFIRMATION
-    console.log('🎯 ===========================================');
-    console.log('🎯 [BOOKING] ÉTAT AVANT CONFIRMATION');
-    console.log('🎯 ===========================================');
-    console.log('🎯 Booking ID:', booking._id);
-    console.log('🎯 Statut actuel:', booking.statut);
-    console.log('🎯 Statut paiement actuel:', booking.statutPaiement);
-    console.log('🎯 Nombre de places:', booking.nbPlaces);
-    console.log('🎯 Prix total:', booking.prixTotal, '€');
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [BOOKING] ÉTAT AVANT CONFIRMATION');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 Booking ID:', booking._id);
+    logger.log('🎯 Statut actuel:', booking.statut);
+    logger.log('🎯 Statut paiement actuel:', booking.statutPaiement);
+    logger.log('🎯 Nombre de places:', booking.nbPlaces);
+    logger.log('🎯 Prix total:', booking.prixTotal, '€');
+    logger.log('🎯 ===========================================');
 
     booking.statut = BookingStatus.CONFIRMED;
     booking.statutPaiement = PaymentStatus.PAID;
@@ -221,44 +222,44 @@ export class BookingsService {
     const confirmedBooking = await booking.save();
     
     // 🎯 LOG DÉTAILLÉ POUR LA CONFIRMATION RÉUSSIE
-    console.log('🎯 ===========================================');
-    console.log('🎯 [BOOKING] CONFIRMATION RÉUSSIE');
-    console.log('🎯 ===========================================');
-    console.log('🎯 Booking ID:', confirmedBooking._id);
-    console.log('🎯 Nouveau statut:', confirmedBooking.statut);
-    console.log('🎯 Nouveau statut paiement:', confirmedBooking.statutPaiement);
-    console.log('🎯 PaymentIntent ID:', confirmedBooking.stripePaymentIntentId);
-    console.log('🎯 Nombre de places:', confirmedBooking.nbPlaces);
-    console.log('🎯 Prix total:', confirmedBooking.prixTotal, '€');
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [BOOKING] CONFIRMATION RÉUSSIE');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 Booking ID:', confirmedBooking._id);
+    logger.log('🎯 Nouveau statut:', confirmedBooking.statut);
+    logger.log('🎯 Nouveau statut paiement:', confirmedBooking.statutPaiement);
+    logger.log('🎯 PaymentIntent ID:', confirmedBooking.stripePaymentIntentId);
+    logger.log('🎯 Nombre de places:', confirmedBooking.nbPlaces);
+    logger.log('🎯 Prix total:', confirmedBooking.prixTotal, '€');
+    logger.log('🎯 ===========================================');
 
     // Générer et envoyer le PDF de confirmation
     try {
-      console.log('📄 [PDF] Génération du PDF de confirmation...');
+      logger.log('📄 [PDF] Génération du PDF de confirmation...');
       
       // Récupérer les données de la retraite
       const retreat = await this.retreatModel.findById(confirmedBooking.retreatId).exec();
       if (!retreat) {
-        console.error('❌ [PDF] Retraite non trouvée pour la génération du PDF');
+        logger.error('❌ [PDF] Retraite non trouvée pour la génération du PDF');
         return confirmedBooking;
       }
 
       // Générer le PDF
       const pdfBuffer = await this.pdfGeneratorService.generateConfirmationPdf(confirmedBooking);
-      console.log('✅ [PDF] PDF généré avec succès');
+      logger.log('✅ [PDF] PDF généré avec succès');
       
       // Envoyer l'email avec le PDF
-      console.log('📧 [EMAIL] Envoi de la confirmation par email...');
+      logger.log('📧 [EMAIL] Envoi de la confirmation par email...');
       const emailSent = await this.emailService.sendBookingConfirmation(confirmedBooking, retreat, pdfBuffer);
       
       if (emailSent) {
-        console.log('✅ [EMAIL] Confirmation envoyée avec succès');
+        logger.log('✅ [EMAIL] Confirmation envoyée avec succès');
       } else {
-        console.error('❌ [EMAIL] Échec de l\'envoi de la confirmation');
+        logger.error('❌ [EMAIL] Échec de l\'envoi de la confirmation');
       }
       
     } catch (error) {
-      console.error('❌ [PDF/EMAIL] Erreur lors de la génération/envoi:', error);
+      logger.error('❌ [PDF/EMAIL] Erreur lors de la génération/envoi:', error);
       // Ne pas faire échouer la confirmation si le PDF/email échoue
     }
 
@@ -340,20 +341,20 @@ export class BookingsService {
     // Convertir la date en objet Date si ce n'est pas déjà le cas
     const dateObj = date instanceof Date ? date : new Date(date);
     
-    console.log(`🔍 [PLACES] Vérification des places disponibles...`, {
+    logger.log(`🔍 [PLACES] Vérification des places disponibles...`, {
       retreatId,
       date: dateObj.toISOString(),
       timestamp: new Date().toISOString()
     });
 
     if (!Types.ObjectId.isValid(retreatId)) {
-      console.error('❌ [PLACES] ID de retraite invalide:', retreatId);
+      logger.error('❌ [PLACES] ID de retraite invalide:', retreatId);
       throw new BadRequestException('ID de retraite invalide');
     }
 
     const retreat = await this.retreatModel.findById(retreatId).exec();
     if (!retreat) {
-      console.error('❌ [PLACES] Retraite non trouvée:', retreatId);
+      logger.error('❌ [PLACES] Retraite non trouvée:', retreatId);
       throw new NotFoundException('Retraite non trouvée');
     }
 
@@ -363,11 +364,11 @@ export class BookingsService {
     );
 
     if (!selectedDate) {
-      console.error('❌ [PLACES] Date non trouvée dans la retraite:', dateObj);
+      logger.error('❌ [PLACES] Date non trouvée dans la retraite:', dateObj);
       throw new NotFoundException('Date de retraite non trouvée');
     }
 
-    console.log(`📋 [PLACES] Retraite trouvée:`, {
+    logger.log(`📋 [PLACES] Retraite trouvée:`, {
       titreCard: retreat.titreCard,
       date: dateObj,
       capaciteMax: selectedDate.places
@@ -402,7 +403,7 @@ export class BookingsService {
     const totalPlacesReservees = placesReservees.length > 0 ? placesReservees[0].totalPlaces : 0;
     const placesDisponibles = selectedDate.places - totalPlacesReservees;
 
-    console.log(`✅ [PLACES] Calcul terminé:`, {
+    logger.log(`✅ [PLACES] Calcul terminé:`, {
       capaciteMax: selectedDate.places,
       placesReservees: totalPlacesReservees,
       placesDisponibles: Math.max(0, placesDisponibles),
@@ -427,7 +428,7 @@ export class BookingsService {
   async cleanupExpiredBookings(): Promise<number> {
     // Bookings expirés après 15 minutes
     const fifteenMinutesAgo = new Date(Date.now() - 16 * 60 * 1000);
-    console.log('🔍 [Cleanup] Recherche des bookings créés avant:', fifteenMinutesAgo.toISOString());
+    logger.log('🔍 [Cleanup] Recherche des bookings créés avant:', fifteenMinutesAgo.toISOString());
     
     // Trouver les réservations expirées
     const expiredBookings = await this.bookingModel.find({
@@ -436,7 +437,7 @@ export class BookingsService {
       createdAt: { $lt: fifteenMinutesAgo }
     });
     
-    console.log('🔍 [Cleanup] Bookings expirés trouvés:', expiredBookings.length);
+    logger.log('🔍 [Cleanup] Bookings expirés trouvés:', expiredBookings.length);
 
     let cleanedCount = 0;
 
@@ -446,9 +447,9 @@ export class BookingsService {
         if (booking.stripePaymentIntentId) {
           try {
             await this.stripeService.cancelPaymentIntent(booking.stripePaymentIntentId);
-            console.log(`✅ PaymentIntent ${booking.stripePaymentIntentId} annulé chez Stripe`);
+            logger.log(`✅ PaymentIntent ${booking.stripePaymentIntentId} annulé chez Stripe`);
           } catch (error) {
-            console.error(`❌ Erreur annulation PaymentIntent ${booking.stripePaymentIntentId}:`, error);
+            logger.error(`❌ Erreur annulation PaymentIntent ${booking.stripePaymentIntentId}:`, error);
             // Continue même si l'annulation Stripe échoue
           }
         }
@@ -456,11 +457,11 @@ export class BookingsService {
         // 2. ENSUITE : Supprimer complètement la réservation côté Lutea
         await this.bookingModel.findByIdAndDelete(booking._id);
 
-        console.log(`✅ Réservation ${booking._id.toString()} supprimée définitivement`);
+        logger.log(`✅ Réservation ${booking._id.toString()} supprimée définitivement`);
         cleanedCount++;
 
       } catch (error) {
-        console.error(`❌ Erreur lors du nettoyage de la réservation ${booking._id.toString()}:`, error);
+        logger.error(`❌ Erreur lors du nettoyage de la réservation ${booking._id.toString()}:`, error);
       }
     }
 
@@ -531,7 +532,7 @@ export class BookingsService {
       retreatsWithIssues: number;
     };
   }> {
-    console.log(`🔍 [BookingsService] Vérification des incohérences de paiement par session (délai de grâce: ${gracePeriodMinutes}min)...`);
+    logger.log(`🔍 [BookingsService] Vérification des incohérences de paiement par session (délai de grâce: ${gracePeriodMinutes}min)...`);
 
     // Calculer la date limite pour le délai de grâce
     const gracePeriodAgo = new Date(Date.now() - gracePeriodMinutes * 60 * 1000);
@@ -539,7 +540,7 @@ export class BookingsService {
     // 1. Récupérer les PaymentIntent réussis de Stripe des 5 derniers jours
     const stripePayments = await this.stripeService.getSuccessfulPayments();
     
-    console.log(`📊 [BookingsService] Paiements Stripe récupérés (5 derniers jours):`, stripePayments.length);
+    logger.log(`📊 [BookingsService] Paiements Stripe récupérés (5 derniers jours):`, stripePayments.length);
     
     // 2. Récupérer SEULEMENT les bookings Stripe des 5 derniers jours
     const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
@@ -553,7 +554,7 @@ export class BookingsService {
       statut: 'CONFIRMED' // ← SEULEMENT les bookings confirmés (avec paiement)
     }).populate('retreatId', 'titreCard dates');
 
-    console.log(`📊 [BookingsService] Bookings Stripe récupérés (5 derniers jours):`, allBookings.length);
+    logger.log(`📊 [BookingsService] Bookings Stripe récupérés (5 derniers jours):`, allBookings.length);
 
     // 3. Créer un mapping des paiements Stripe par stripePaymentIntentId
     const stripeByPaymentId = new Map<string, Stripe.PaymentIntent>();
@@ -579,7 +580,7 @@ export class BookingsService {
         const isRecentPayment = paymentDate > gracePeriodAgo;
         
         if (isRecentPayment) {
-          console.log(`⏰ [BookingsService] Paiement récent ignoré (délai de grâce): ${paymentId}`);
+          logger.log(`⏰ [BookingsService] Paiement récent ignoré (délai de grâce): ${paymentId}`);
           continue; // Ignorer les paiements récents
         }
         
@@ -630,7 +631,7 @@ export class BookingsService {
       retreatsWithIssues: new Set(orphanPayments.map(p => p.retreatId)).size
     };
 
-    console.log(`📊 [BookingsService] Incohérences détectées:`, summary);
+    logger.log(`📊 [BookingsService] Incohérences détectées:`, summary);
 
     return {
       sessionDiscrepancies: orphanPayments,
@@ -655,7 +656,7 @@ export class BookingsService {
     const userId: string | null = (createBookingDto as any).userId || null;
     const isGuest = !userId; // Si pas de userId, c'est un invité
 
-    console.log('👨‍💼 [ADMIN] Création manuelle d\'un booking...', {
+    logger.log('👨‍💼 [ADMIN] Création manuelle d\'un booking...', {
       retreatId,
       date: dateStart,
       nbPlaces,
@@ -703,7 +704,7 @@ export class BookingsService {
 
     const savedBooking = await booking.save();
 
-    console.log('✅ [ADMIN] Booking créé manuellement avec succès:', {
+    logger.log('✅ [ADMIN] Booking créé manuellement avec succès:', {
       bookingId: savedBooking._id,
       retreatId,
       nbPlaces,

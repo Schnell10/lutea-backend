@@ -18,6 +18,9 @@ import { securityConfig } from '../../config/security.config';
 // Import du service email
 import { EmailService } from '../email/email.service';
 
+// Import du logger personnalisé
+import { logger } from '../../common/utils/logger';
+
 @Injectable()
 export class UsersService {
   
@@ -34,31 +37,31 @@ export class UsersService {
 
   // PRÉPARATION DE L'INSCRIPTION (compte temporaire créé)
   async prepareRegistration(createUserDto: any): Promise<{ email: string, verificationToken: string }> {
-    console.log(`📝 [UsersService] Préparation inscription pour: ${createUserDto.email}`);
+    logger.log(`📝 [UsersService] Préparation inscription pour: ${createUserDto.email}`);
     
     // Vérifier que l'email n'existe pas déjà (ni dans users ni dans temporary_users)
     const existingUser = await this.findByEmail(createUserDto.email);
     const existingTemporaryUser = await this.temporaryUserModel.findOne({ email: createUserDto.email }).exec();
     
     if (existingUser) {
-      console.log(`❌ [UsersService] Email déjà utilisé par un compte permanent: ${createUserDto.email}`);
+      logger.log(`❌ [UsersService] Email déjà utilisé par un compte permanent: ${createUserDto.email}`);
       throw new BadRequestException('Un compte avec cet email existe déjà');
     }
     
     if (existingTemporaryUser) {
-      console.log(`❌ [UsersService] Email déjà utilisé par un compte temporaire: ${createUserDto.email}`);
+      logger.log(`❌ [UsersService] Email déjà utilisé par un compte temporaire: ${createUserDto.email}`);
       throw new BadRequestException('Un compte avec cet email est en attente de validation. Veuillez vérifier votre boîte mail pour confirmer votre compte.');
     }
 
-    console.log(`✅ [UsersService] Email disponible: ${createUserDto.email}`);
+    logger.log(`✅ [UsersService] Email disponible: ${createUserDto.email}`);
 
     // Hash du mot de passe
     const hashedPassword = await bcrypt.hash(createUserDto.password, securityConfig.password.saltRounds);
-    console.log(`🔒 [UsersService] Mot de passe hashé avec ${securityConfig.password.saltRounds} rounds`);
+    logger.log(`🔒 [UsersService] Mot de passe hashé avec ${securityConfig.password.saltRounds} rounds`);
 
     // Générer un token de validation unique
     const verificationToken = this.generateVerificationToken();
-    console.log(`🔑 [UsersService] Token de validation généré: ${verificationToken.substring(0, 8)}...`);
+    logger.log(`🔑 [UsersService] Token de validation généré: ${verificationToken.substring(0, 8)}...`);
     
     // Créer un utilisateur temporaire (expire dans 24h)
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
@@ -73,11 +76,11 @@ export class UsersService {
 
     // Sauvegarder l'utilisateur temporaire
     await temporaryUser.save();
-    console.log(`💾 [UsersService] Utilisateur temporaire créé: ${createUserDto.email} (expire: ${expiresAt.toISOString()})`);
+    logger.log(`💾 [UsersService] Utilisateur temporaire créé: ${createUserDto.email} (expire: ${expiresAt.toISOString()})`);
     
     // Envoyer l'email avec le lien de validation
     await this.emailService.sendRegistrationValidation(createUserDto.email, verificationToken);
-    console.log(`📧 [UsersService] Email de validation envoyé: ${createUserDto.email}`);
+    logger.log(`📧 [UsersService] Email de validation envoyé: ${createUserDto.email}`);
     
     return {
       email: createUserDto.email,
@@ -87,34 +90,34 @@ export class UsersService {
 
   // CRÉATION DU COMPTE APRÈS VALIDATION EMAIL
   async createAccountAfterEmailValidation(verificationToken: string): Promise<User> {
-    console.log(`📝 [UsersService] Création du compte après validation email avec token: ${verificationToken.substring(0, 8)}...`);
+    logger.log(`📝 [UsersService] Création du compte après validation email avec token: ${verificationToken.substring(0, 8)}...`);
     
     try {
       // Récupérer l'utilisateur temporaire par token
-      console.log(`🔍 [UsersService] Recherche de l'utilisateur temporaire...`);
+      logger.log(`🔍 [UsersService] Recherche de l'utilisateur temporaire...`);
       const temporaryUser = await this.temporaryUserModel.findOne({ 
         verificationToken: verificationToken 
       }).exec();
       
       // Vérifier que le token existe et n'est pas expiré
       if (!temporaryUser) {
-        console.log(`❌ [UsersService] Token de validation invalide: ${verificationToken.substring(0, 8)}...`);
+        logger.log(`❌ [UsersService] Token de validation invalide: ${verificationToken.substring(0, 8)}...`);
         throw new BadRequestException('Token de validation invalide');
       }
       
-      console.log(`✅ [UsersService] Utilisateur temporaire trouvé: ${temporaryUser.email}`);
+      logger.log(`✅ [UsersService] Utilisateur temporaire trouvé: ${temporaryUser.email}`);
       
       if (temporaryUser.expiresAt < new Date()) {
-        console.log(`⏰ [UsersService] Token expiré pour: ${temporaryUser.email}`);
+        logger.log(`⏰ [UsersService] Token expiré pour: ${temporaryUser.email}`);
         // Supprimer l'utilisateur temporaire expiré
         await this.temporaryUserModel.findByIdAndDelete(temporaryUser._id).exec();
         throw new BadRequestException('Token de validation expiré');
       }
       
-      console.log(`✅ [UsersService] Token valide pour: ${temporaryUser.email}`);
+      logger.log(`✅ [UsersService] Token valide pour: ${temporaryUser.email}`);
       
       // Créer le compte PERMANENT (email déjà validé)
-      console.log(`👤 [UsersService] Création du compte permanent...`);
+      logger.log(`👤 [UsersService] Création du compte permanent...`);
       const user = new this.userModel({
         email: temporaryUser.email,
         password: temporaryUser.password, // Déjà hashé
@@ -130,18 +133,18 @@ export class UsersService {
       });
 
       // Sauvegarder l'utilisateur permanent
-      console.log(`💾 [UsersService] Sauvegarde du compte permanent...`);
+      logger.log(`💾 [UsersService] Sauvegarde du compte permanent...`);
       const savedUser = await user.save();
-      console.log(`✅ [UsersService] Compte permanent sauvegardé: ${savedUser.email}`);
+      logger.log(`✅ [UsersService] Compte permanent sauvegardé: ${savedUser.email}`);
 
       // Supprimer l'utilisateur temporaire
-      console.log(`🗑️ [UsersService] Suppression de l'utilisateur temporaire...`);
+      logger.log(`🗑️ [UsersService] Suppression de l'utilisateur temporaire...`);
       await this.temporaryUserModel.findByIdAndDelete(temporaryUser._id).exec();
-      console.log(`✅ [UsersService] Utilisateur temporaire supprimé`);
+      logger.log(`✅ [UsersService] Utilisateur temporaire supprimé`);
 
       return savedUser;
     } catch (error) {
-      console.error(`❌ [UsersService] Erreur lors de la création du compte:`, error);
+      logger.error(`❌ [UsersService] Erreur lors de la création du compte:`, error);
       throw error;
     }
   }
@@ -158,8 +161,8 @@ export class UsersService {
 
   // MISE À JOUR DU PROFIL
   async updateProfile(userId: string, updateUserDto: any): Promise<User | null> {
-    console.log(`📝 [UsersService] Mise à jour du profil pour l'utilisateur: ${userId}`);
-    console.log(`📋 [UsersService] Données reçues:`, {
+    logger.log(`📝 [UsersService] Mise à jour du profil pour l'utilisateur: ${userId}`);
+    logger.log(`📋 [UsersService] Données reçues:`, {
       hasCurrentPassword: !!updateUserDto.currentPassword,
       hasNewPassword: !!updateUserDto.newPassword,
       hasConfirmPassword: !!updateUserDto.confirmPassword,
@@ -171,26 +174,26 @@ export class UsersService {
 
     // Si un nouveau mot de passe est fourni, le hasher
     if (newPassword) {
-      console.log(`🔐 [UsersService] Nouveau mot de passe détecté - début du hachage...`);
-      console.log(`🔐 [UsersService] Longueur du nouveau mot de passe: ${newPassword.length} caractères`);
+      logger.log(`🔐 [UsersService] Nouveau mot de passe détecté - début du hachage...`);
+      logger.log(`🔐 [UsersService] Longueur du nouveau mot de passe: ${newPassword.length} caractères`);
       
       try {
         // Hacher le nouveau mot de passe avec bcrypt
         const hashedNewPassword = await bcrypt.hash(newPassword, securityConfig.password.saltRounds);
         safeUpdates.password = hashedNewPassword;
         
-        console.log(`✅ [UsersService] Nouveau mot de passe hashé avec succès pour l'utilisateur: ${userId}`);
-        console.log(`🔐 [UsersService] Hash généré: ${hashedNewPassword.substring(0, 20)}...`);
+        logger.log(`✅ [UsersService] Nouveau mot de passe hashé avec succès pour l'utilisateur: ${userId}`);
+        logger.log(`🔐 [UsersService] Hash généré: ${hashedNewPassword.substring(0, 20)}...`);
       } catch (error) {
-        console.error(`❌ [UsersService] Erreur lors du hachage du mot de passe:`, error);
+        logger.error(`❌ [UsersService] Erreur lors du hachage du mot de passe:`, error);
         throw error;
       }
     } else {
-      console.log(`ℹ️ [UsersService] Aucun nouveau mot de passe fourni - mise à jour des autres champs uniquement`);
+      logger.log(`ℹ️ [UsersService] Aucun nouveau mot de passe fourni - mise à jour des autres champs uniquement`);
     }
 
-    console.log(`💾 [UsersService] Mise à jour en base de données...`);
-    console.log(`📋 [UsersService] Champs à mettre à jour:`, Object.keys(safeUpdates));
+    logger.log(`💾 [UsersService] Mise à jour en base de données...`);
+    logger.log(`📋 [UsersService] Champs à mettre à jour:`, Object.keys(safeUpdates));
 
     try {
       const updatedUser = await this.userModel
@@ -198,15 +201,15 @@ export class UsersService {
         .exec();
 
       if (updatedUser) {
-        console.log(`✅ [UsersService] Profil mis à jour avec succès pour l'utilisateur: ${userId}`);
-        console.log(`📧 [UsersService] Email utilisateur: ${updatedUser.email}`);
+        logger.log(`✅ [UsersService] Profil mis à jour avec succès pour l'utilisateur: ${userId}`);
+        logger.log(`📧 [UsersService] Email utilisateur: ${updatedUser.email}`);
       } else {
-        console.error(`❌ [UsersService] Aucun utilisateur trouvé avec l'ID: ${userId}`);
+        logger.error(`❌ [UsersService] Aucun utilisateur trouvé avec l'ID: ${userId}`);
       }
 
       return updatedUser;
     } catch (error) {
-      console.error(`❌ [UsersService] Erreur lors de la mise à jour en base:`, error);
+      logger.error(`❌ [UsersService] Erreur lors de la mise à jour en base:`, error);
       throw error;
     }
   }
@@ -214,14 +217,14 @@ export class UsersService {
   // VALIDATION DU MOT DE PASSE
   // compare le mot de passe fourni avec le hash stocké en base
   async validatePassword(user: User, password: string): Promise<boolean> {
-    console.log(`🔍 [UsersService] Validation mot de passe pour: ${user.email}`);
+    logger.log(`🔍 [UsersService] Validation mot de passe pour: ${user.email}`);
     
     try {
       const isMatch = await bcrypt.compare(password, user.password);
-      console.log(`✅ [UsersService] Mot de passe ${isMatch ? 'valide' : 'invalide'} pour: ${user.email}`);
+      logger.log(`✅ [UsersService] Mot de passe ${isMatch ? 'valide' : 'invalide'} pour: ${user.email}`);
       return isMatch;
     } catch (error) {
-      console.log(`❌ [UsersService] Erreur lors de la validation du mot de passe: ${user.email}`, error.message);
+      logger.log(`❌ [UsersService] Erreur lors de la validation du mot de passe: ${user.email}`, error.message);
       return false;
     }
   }
@@ -399,8 +402,8 @@ export class UsersService {
     
     // Log des suppressions (pour le monitoring)
     if (result.deletedCount > 0) {
-      console.log(`🧹 Nettoyage automatique : ${result.deletedCount} comptes temporaires supprimés`);
-      console.log(`📧 Emails supprimés : ${cleanedEmails.join(', ')}`);
+      logger.log(`🧹 Nettoyage automatique : ${result.deletedCount} comptes temporaires supprimés`);
+      logger.log(`📧 Emails supprimés : ${cleanedEmails.join(', ')}`);
     }
     
     return { 
@@ -434,7 +437,7 @@ export class UsersService {
       // Envoyer l'email avec le code 2FA
       await this.emailService.send2FACode(email, code);
       
-      console.log(`🔐 Code 2FA généré pour ${email} (expire dans ${securityConfig.twoFactor.codeExpiry} minutes)`);
+      logger.log(`🔐 Code 2FA généré pour ${email} (expire dans ${securityConfig.twoFactor.codeExpiry} minutes)`);
       
       return {
         success: true,
@@ -442,7 +445,7 @@ export class UsersService {
       };
       
     } catch (error) {
-      console.error('❌ Erreur lors de la génération du code 2FA:', error);
+      logger.error('❌ Erreur lors de la génération du code 2FA:', error);
       return {
         success: false,
         message: error.message || 'Erreur lors de la génération du code 2FA'
@@ -502,7 +505,7 @@ export class UsersService {
       }
     ).exec();
     
-    console.log(`🔐 [UsersService] Token de réinitialisation généré pour: ${email} (tentative ${(user.passwordResetAttempts || 0) + 1}/${securityConfig.passwordReset.maxAttempts})`);
+    logger.log(`🔐 [UsersService] Token de réinitialisation généré pour: ${email} (tentative ${(user.passwordResetAttempts || 0) + 1}/${securityConfig.passwordReset.maxAttempts})`);
     
     return resetToken;
   }
@@ -512,7 +515,7 @@ export class UsersService {
     try {
       return await this.emailService.sendPasswordReset(email, resetToken);
     } catch (error) {
-      console.error(`❌ Erreur lors de l'envoi de l'email de réinitialisation à ${email}:`, error);
+      logger.error(`❌ Erreur lors de l'envoi de l'email de réinitialisation à ${email}:`, error);
       return false;
     }
   }
@@ -570,7 +573,7 @@ export class UsersService {
   // RÉINITIALISATION DU MOT DE PASSE AVEC TOKEN
   async resetPasswordWithToken(token: string, newPassword: string): Promise<boolean> {
     try {
-      console.log(`🔐 [UsersService] Tentative de réinitialisation avec token: ${token.substring(0, 8)}...`);
+      logger.log(`🔐 [UsersService] Tentative de réinitialisation avec token: ${token.substring(0, 8)}...`);
       
       // Rechercher l'utilisateur par token et vérifier l'expiration
       const user = await this.userModel.findOne({
@@ -579,15 +582,15 @@ export class UsersService {
       }).exec();
       
       if (!user) {
-        console.log(`❌ [UsersService] Token invalide ou expiré: ${token.substring(0, 8)}...`);
+        logger.log(`❌ [UsersService] Token invalide ou expiré: ${token.substring(0, 8)}...`);
         return false; // Token invalide ou expiré
       }
       
-      console.log(`✅ [UsersService] Token valide trouvé pour: ${user.email}`);
+      logger.log(`✅ [UsersService] Token valide trouvé pour: ${user.email}`);
       
       // Hasher le nouveau mot de passe
       const hashedPassword = await bcrypt.hash(newPassword, securityConfig.password.saltRounds);
-      console.log(`🔒 [UsersService] Nouveau mot de passe hashé pour: ${user.email}`);
+      logger.log(`🔒 [UsersService] Nouveau mot de passe hashé pour: ${user.email}`);
       
       // Mettre à jour le mot de passe et supprimer le token
       await this.userModel.updateOne(
@@ -599,8 +602,8 @@ export class UsersService {
         }
       ).exec();
       
-      console.log(`🎉 [UsersService] Mot de passe réinitialisé avec succès pour: ${user.email}`);
-      console.log(`🗑️ [UsersService] Token de réinitialisation supprimé pour: ${user.email}`);
+      logger.log(`🎉 [UsersService] Mot de passe réinitialisé avec succès pour: ${user.email}`);
+      logger.log(`🗑️ [UsersService] Token de réinitialisation supprimé pour: ${user.email}`);
       
       // Réinitialiser le compteur de tentatives après succès
       await this.userModel.updateOne(
@@ -611,12 +614,12 @@ export class UsersService {
         }
       ).exec();
       
-      console.log(`🔄 [UsersService] Compteur de tentatives réinitialisé pour: ${user.email}`);
+      logger.log(`🔄 [UsersService] Compteur de tentatives réinitialisé pour: ${user.email}`);
       
       return true;
       
     } catch (error) {
-      console.error('❌ Erreur lors de la réinitialisation du mot de passe:', error);
+      logger.error('❌ Erreur lors de la réinitialisation du mot de passe:', error);
       return false;
     }
   }

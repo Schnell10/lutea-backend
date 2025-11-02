@@ -22,6 +22,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 // Import de nos services et DTOs
 import { UsersService } from './users.service';
 import { UserDocument } from './users.schema';
+import { logger } from '../../common/utils/logger';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard) // Protection JWT sur toutes les routes
@@ -52,9 +53,9 @@ export class UsersController {
     @CurrentUser() user: any,
     @Body() updateData: any
   ) {
-    console.log(`🔄 [UsersController] Demande de mise à jour du profil pour l'utilisateur: ${user.sub}`);
-    console.log(`📧 [UsersController] Email utilisateur: ${user.email}`);
-    console.log(`📋 [UsersController] Données reçues:`, {
+    logger.log(`🔄 [UsersController] Demande de mise à jour du profil pour l'utilisateur: ${user.sub}`);
+    logger.log(`📧 [UsersController] Email utilisateur: ${user.email}`);
+    logger.log(`📋 [UsersController] Données reçues:`, {
       hasPasswordFields: !!(updateData.currentPassword || updateData.newPassword || updateData.confirmPassword),
       otherFields: Object.keys(updateData).filter(key => !['currentPassword', 'newPassword', 'confirmPassword'].includes(key))
     });
@@ -64,19 +65,19 @@ export class UsersController {
       const updatedUser = await this.usersService.updateProfile(user.sub, updateData) as UserDocument;
       
       if (!updatedUser) {
-        console.error(`❌ [UsersController] Aucun utilisateur mis à jour trouvé pour l'ID: ${user.sub}`);
+        logger.error(`❌ [UsersController] Aucun utilisateur mis à jour trouvé pour l'ID: ${user.sub}`);
         throw new ForbiddenException('Erreur lors de la mise à jour');
       }
       
-      console.log(`✅ [UsersController] Profil mis à jour avec succès pour: ${user.email}`);
+      logger.log(`✅ [UsersController] Profil mis à jour avec succès pour: ${user.email}`);
       
       // Retourner le profil mis à jour sans le mot de passe
       const { password: _password, ...profile } = updatedUser.toObject();
-      console.log(`📤 [UsersController] Retour du profil mis à jour (sans mot de passe)`);
+      logger.log(`📤 [UsersController] Retour du profil mis à jour (sans mot de passe)`);
       
       return profile;
     } catch (error) {
-      console.error(`❌ [UsersController] Erreur lors de la mise à jour du profil:`, error);
+      logger.error(`❌ [UsersController] Erreur lors de la mise à jour du profil:`, error);
       throw error;
     }
   }
@@ -146,26 +147,26 @@ export class UsersController {
     @CurrentUser() user: any,
     @Body() body: { currentPassword: string }
   ) {
-    console.log(`🔐 [UsersController] Validation du mot de passe pour l'utilisateur: ${user.sub}`);
-    console.log(`📧 [UsersController] Email utilisateur: ${user.email}`);
-    console.log(`🔍 [UsersController] Mot de passe fourni: ${body.currentPassword ? 'Oui' : 'Non'}`);
+    logger.log(`🔐 [UsersController] Validation du mot de passe pour l'utilisateur: ${user.sub}`);
+    logger.log(`📧 [UsersController] Email utilisateur: ${user.email}`);
+    logger.log(`🔍 [UsersController] Mot de passe fourni: ${body.currentPassword ? 'Oui' : 'Non'}`);
 
     try {
       const userProfile = await this.usersService.findById(user.sub);
       
       if (!userProfile) {
-        console.error(`❌ [UsersController] Utilisateur non trouvé avec l'ID: ${user.sub}`);
+        logger.error(`❌ [UsersController] Utilisateur non trouvé avec l'ID: ${user.sub}`);
         throw new ForbiddenException('Utilisateur non trouvé');
       }
 
-      console.log(`🔍 [UsersController] Utilisateur trouvé: ${userProfile.email}`);
+      logger.log(`🔍 [UsersController] Utilisateur trouvé: ${userProfile.email}`);
       const isValid = await this.usersService.validatePassword(userProfile, body.currentPassword);
       
-      console.log(`✅ [UsersController] Résultat validation: ${isValid ? 'Valide' : 'Invalide'} pour ${user.email}`);
+      logger.log(`✅ [UsersController] Résultat validation: ${isValid ? 'Valide' : 'Invalide'} pour ${user.email}`);
       
       return { isValid };
     } catch (error) {
-      console.error(`❌ [UsersController] Erreur lors de la validation du mot de passe:`, error);
+      logger.error(`❌ [UsersController] Erreur lors de la validation du mot de passe:`, error);
       throw error;
     }
   }
@@ -182,7 +183,7 @@ export class UsersController {
   @Get('admin/search-by-email')
   @UseGuards(AdminGuard)
   async searchUserByEmail(@Query('email') email: string) {
-    console.log('🔍 [ADMIN] Recherche d\'utilisateur par email:', email);
+    logger.log('🔍 [ADMIN] Recherche d\'utilisateur par email:', email);
     
     if (!email) {
       throw new ForbiddenException('Email requis');
@@ -198,7 +199,7 @@ export class UsersController {
     const userObject = (user as any).toObject ? (user as any).toObject() : user;
     const { password: _password, ...userWithoutPassword } = userObject;
     
-    console.log('✅ [ADMIN] Utilisateur trouvé et converti:', {
+    logger.log('✅ [ADMIN] Utilisateur trouvé et converti:', {
       firstName: userWithoutPassword.firstName,
       lastName: userWithoutPassword.lastName,
       email: userWithoutPassword.email

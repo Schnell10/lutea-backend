@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { BookingsService } from './bookings.service';
 import { EmailService } from '../email/email.service';
+import { logger } from '../../common/utils/logger';
 
 @Injectable()
 export class BookingsCronService {
@@ -14,16 +15,16 @@ export class BookingsCronService {
   @Cron('0 */20 * * * *')
   async cleanupExpiredBookings() {
     try {
-      console.log('🧹 [Cron] Début du nettoyage des bookings expirés...');
+      logger.log('🧹 [Cron] Début du nettoyage des bookings expirés...');
       const cleanedCount = await this.bookingsService.cleanupExpiredBookings();
       
       if (cleanedCount > 0) {
-        console.log(`🧹 [Cron] Nettoyage automatique: ${cleanedCount} bookings expirés supprimés définitivement`);
+        logger.log(`🧹 [Cron] Nettoyage automatique: ${cleanedCount} bookings expirés supprimés définitivement`);
       } else {
-        console.log('🧹 [Cron] Aucun booking expiré à supprimer');
+        logger.log('🧹 [Cron] Aucun booking expiré à supprimer');
       }
     } catch (error) {
-      console.error('❌ [Cron] Erreur lors du nettoyage automatique des bookings:', error);
+      logger.error('❌ [Cron] Erreur lors du nettoyage automatique des bookings:', error);
     }
   }
 
@@ -31,13 +32,13 @@ export class BookingsCronService {
   @Cron('0 */30 * * * *') // Toutes les 30 minutes
   async checkPaymentDiscrepancies() {
     try {
-      console.log('🔍 [Cron] Vérification automatique des incohérences de paiement...');
+      logger.log('🔍 [Cron] Vérification automatique des incohérences de paiement...');
       
       // Vérifier avec un délai de grâce de 5 minutes pour éviter les fausses alertes
       const discrepancies = await this.bookingsService.checkPaymentDiscrepancies(5);
       
       if (discrepancies.summary.totalDiscrepancies > 0) {
-        console.log(`🚨 [Cron] ${discrepancies.summary.totalDiscrepancies} incohérences détectées sur ${discrepancies.summary.sessionsWithIssues} sessions !`);
+        logger.log(`🚨 [Cron] ${discrepancies.summary.totalDiscrepancies} incohérences détectées sur ${discrepancies.summary.sessionsWithIssues} sessions !`);
         
         // Construire le message d'alerte détaillé
         const alertMessage = this.buildAlertMessage(discrepancies);
@@ -48,12 +49,12 @@ export class BookingsCronService {
           alertMessage
         );
         
-        console.log('📧 [Cron] Alerte envoyée par email à l\'admin');
+        logger.log('📧 [Cron] Alerte envoyée par email à l\'admin');
       } else {
-        console.log('✅ [Cron] Aucune incohérence détectée');
+        logger.log('✅ [Cron] Aucune incohérence détectée');
       }
     } catch (error) {
-      console.error('❌ [Cron] Erreur lors de la vérification des incohérences:', error);
+      logger.error('❌ [Cron] Erreur lors de la vérification des incohérences:', error);
     }
   }
 

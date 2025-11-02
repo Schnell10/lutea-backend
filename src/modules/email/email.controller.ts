@@ -1,18 +1,36 @@
 // Import des fonctionnalités NATIVES de NestJS
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { IsString, IsEmail, IsBoolean, IsOptional } from 'class-validator';
 
 // Import de notre service email
 import { EmailService } from './email.service';
 
+// Import du logger personnalisé
+import { logger } from '../../common/utils/logger';
+
 // DTO pour le formulaire de contact
 export class ContactDto {
+  @IsString()
   nom: string;
+
+  @IsString()
   prenom: string;
+
+  @IsEmail()
   email: string;
+
+  @IsString()
   telephone: string;
+
+  @IsString()
   message: string;
+
+  @IsBoolean()
   rgpd: boolean;
-  token: string; // Token reCAPTCHA (déjà validé côté frontend)
+
+  @IsOptional()
+  @IsString()
+  token?: string; // Token reCAPTCHA pour validation côté serveur
 }
 
 @Controller('email')
@@ -38,7 +56,7 @@ export class EmailController {
         };
       }
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de l\'email de contact:', error);
+      logger.error('Erreur lors de l\'envoi de l\'email de contact:', error);
       return { 
         success: false, 
         message: 'Erreur serveur. Veuillez réessayer plus tard.' 

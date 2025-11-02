@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { BookingsService } from '../bookings/bookings.service';
 import { stripeConfig } from '../../config/stripe.config';
+import { logger } from '../../common/utils/logger';
 
 @Injectable()
 export class StripeService {
@@ -30,18 +31,18 @@ export class StripeService {
   async createPaymentIntent(amount: number, currency: string = stripeConfig.payment.currency, metadata: any = {}): Promise<Stripe.PaymentIntent> {
     try {
       // 🎯 LOG DÉTAILLÉ POUR LA CRÉATION DE PAYMENTINTENT
-      console.log('🎯 ===========================================');
-      console.log('🎯 [STRIPE] DÉBUT DE CRÉATION PAYMENTINTENT');
-      console.log('🎯 ===========================================');
-      console.log('🎯 Montant:', amount, 'centimes');
-      console.log('🎯 Montant en euros:', (amount / 100), '€');
-      console.log('🎯 Devise:', currency);
-      console.log('🎯 Booking ID:', metadata.bookingId);
-      console.log('🎯 Retreat ID:', metadata.retreatId);
-      console.log('🎯 Nom retraite:', metadata.retreatName);
-      console.log('🎯 Email client:', metadata.clientEmail);
-      console.log('🎯 Nombre de places:', metadata.nbPlaces);
-      console.log('🎯 ===========================================');
+      logger.log('🎯 ===========================================');
+      logger.log('🎯 [STRIPE] DÉBUT DE CRÉATION PAYMENTINTENT');
+      logger.log('🎯 ===========================================');
+      logger.log('🎯 Montant:', amount, 'centimes');
+      logger.log('🎯 Montant en euros:', (amount / 100), '€');
+      logger.log('🎯 Devise:', currency);
+      logger.log('🎯 Booking ID:', metadata.bookingId);
+      logger.log('🎯 Retreat ID:', metadata.retreatId);
+      logger.log('🎯 Nom retraite:', metadata.retreatName);
+      logger.log('🎯 Email client:', metadata.clientEmail);
+      logger.log('🎯 Nombre de places:', metadata.nbPlaces);
+      logger.log('🎯 ===========================================');
       
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: amount, // Le montant est déjà en centimes depuis le frontend
@@ -54,19 +55,19 @@ export class StripeService {
       });
 
       // 🎯 LOG DÉTAILLÉ POUR LA CRÉATION RÉUSSIE
-      console.log('🎯 ===========================================');
-      console.log('🎯 [STRIPE] PAYMENTINTENT CRÉÉ AVEC SUCCÈS');
-      console.log('🎯 ===========================================');
-      console.log('🎯 PaymentIntent ID:', paymentIntent.id);
-      console.log('🎯 Statut:', paymentIntent.status);
-      console.log('🎯 Montant:', (amount/100) + '€');
-      console.log('🎯 Devise:', paymentIntent.currency);
-      console.log('🎯 Booking ID:', metadata.bookingId);
-      console.log('🎯 Client Secret:', paymentIntent.client_secret ? '✅ Oui' : '❌ Non');
-      console.log('🎯 ===========================================');
+      logger.log('🎯 ===========================================');
+      logger.log('🎯 [STRIPE] PAYMENTINTENT CRÉÉ AVEC SUCCÈS');
+      logger.log('🎯 ===========================================');
+      logger.log('🎯 PaymentIntent ID:', paymentIntent.id);
+      logger.log('🎯 Statut:', paymentIntent.status);
+      logger.log('🎯 Montant:', (amount/100) + '€');
+      logger.log('🎯 Devise:', paymentIntent.currency);
+      logger.log('🎯 Booking ID:', metadata.bookingId);
+      logger.log('🎯 Client Secret:', paymentIntent.client_secret ? '✅ Oui' : '❌ Non');
+      logger.log('🎯 ===========================================');
       return paymentIntent;
     } catch (error) {
-      console.error('❌ [STRIPE] Erreur lors de la création du PaymentIntent:', error.message);
+      logger.error('❌ [STRIPE] Erreur lors de la création du PaymentIntent:', error.message);
       throw new BadRequestException(`Erreur lors de la création du PaymentIntent: ${error.message}`);
     }
   }
@@ -83,14 +84,14 @@ export class StripeService {
   // Annuler un PaymentIntent
   async cancelPaymentIntent(paymentIntentId: string): Promise<Stripe.PaymentIntent> {
     try {
-      console.log('🚫 [STRIPE] Annulation de la session de paiement...', {
+      logger.log('🚫 [STRIPE] Annulation de la session de paiement...', {
         paymentIntentId,
         timestamp: new Date().toISOString()
       });
       
       const cancelledPaymentIntent = await this.stripe.paymentIntents.cancel(paymentIntentId);
       
-      console.log('✅ [STRIPE] Session de paiement annulée avec succès !', {
+      logger.log('✅ [STRIPE] Session de paiement annulée avec succès !', {
         paymentIntentId,
         statut: cancelledPaymentIntent.status,
         montant: (cancelledPaymentIntent.amount/100) + '€'
@@ -98,7 +99,7 @@ export class StripeService {
       
       return cancelledPaymentIntent;
     } catch (error) {
-      console.error('❌ [STRIPE] Erreur lors de l\'annulation du PaymentIntent:', error.message);
+      logger.error('❌ [STRIPE] Erreur lors de l\'annulation du PaymentIntent:', error.message);
       throw new BadRequestException(`Erreur lors de l'annulation du PaymentIntent: ${error.message}`);
     }
   }
@@ -129,7 +130,7 @@ export class StripeService {
         break;
       
       default:
-        console.log(`Événement webhook non géré: ${event.type}`);
+        logger.log(`Événement webhook non géré: ${event.type}`);
     }
   }
 
@@ -139,19 +140,19 @@ export class StripeService {
     const bookingId = pi.metadata.bookingId;
     
     // 🎯 LOG DÉTAILLÉ POUR LE WEBHOOK DE PAIEMENT RÉUSSI
-    console.log('🎯 ===========================================');
-    console.log('🎯 [WEBHOOK] PAIEMENT RÉUSSI REÇU');
-    console.log('🎯 ===========================================');
-    console.log('🎯 PaymentIntent ID:', pi.id);
-    console.log('🎯 Booking ID:', bookingId);
-    console.log('🎯 Montant:', (pi.amount / 100) + '€');
-    console.log('🎯 Devise:', pi.currency);
-    console.log('🎯 Email client:', pi.metadata.clientEmail || 'Non fourni');
-    console.log('🎯 Nom retraite:', pi.metadata.retreatName || 'Non fourni');
-    console.log('🎯 ===========================================');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 [WEBHOOK] PAIEMENT RÉUSSI REÇU');
+    logger.log('🎯 ===========================================');
+    logger.log('🎯 PaymentIntent ID:', pi.id);
+    logger.log('🎯 Booking ID:', bookingId);
+    logger.log('🎯 Montant:', (pi.amount / 100) + '€');
+    logger.log('🎯 Devise:', pi.currency);
+    logger.log('🎯 Email client:', pi.metadata.clientEmail || 'Non fourni');
+    logger.log('🎯 Nom retraite:', pi.metadata.retreatName || 'Non fourni');
+    logger.log('🎯 ===========================================');
     
     if (!bookingId) {
-      console.error('❌ [WEBHOOK] Aucun bookingId trouvé dans les métadonnées du PaymentIntent');
+      logger.error('❌ [WEBHOOK] Aucun bookingId trouvé dans les métadonnées du PaymentIntent');
       return;
     }
 
@@ -159,16 +160,16 @@ export class StripeService {
       await this.bookingsService.confirmBooking(bookingId, pi.id);
       
       // 🎯 LOG DÉTAILLÉ POUR LA CONFIRMATION RÉUSSIE
-      console.log('🎯 ===========================================');
-      console.log('🎯 [WEBHOOK] BOOKING CONFIRMÉ AVEC SUCCÈS');
-      console.log('🎯 ===========================================');
-      console.log('🎯 Booking ID:', bookingId);
-      console.log('🎯 PaymentIntent ID:', pi.id);
-      console.log('🎯 Montant payé:', (pi.amount / 100) + '€');
-      console.log('🎯 Email client:', pi.metadata.clientEmail || 'Non fourni');
-      console.log('🎯 ===========================================');
+      logger.log('🎯 ===========================================');
+      logger.log('🎯 [WEBHOOK] BOOKING CONFIRMÉ AVEC SUCCÈS');
+      logger.log('🎯 ===========================================');
+      logger.log('🎯 Booking ID:', bookingId);
+      logger.log('🎯 PaymentIntent ID:', pi.id);
+      logger.log('🎯 Montant payé:', (pi.amount / 100) + '€');
+      logger.log('🎯 Email client:', pi.metadata.clientEmail || 'Non fourni');
+      logger.log('🎯 ===========================================');
     } catch (error) {
-      console.error(`❌ [WEBHOOK] Erreur lors de la confirmation du booking ${bookingId}:`, error);
+      logger.error(`❌ [WEBHOOK] Erreur lors de la confirmation du booking ${bookingId}:`, error);
     }
   }
 
@@ -178,15 +179,15 @@ export class StripeService {
     const bookingId = pi.metadata.bookingId;
     
     if (!bookingId) {
-      console.error('Aucun bookingId trouvé dans les métadonnées du PaymentIntent');
+      logger.error('Aucun bookingId trouvé dans les métadonnées du PaymentIntent');
       return;
     }
 
     try {
       await this.bookingsService.cancelBooking(bookingId, 'Échec de paiement Stripe');
-      console.log(`Booking ${bookingId} annulé suite à un échec de paiement`);
+      logger.log(`Booking ${bookingId} annulé suite à un échec de paiement`);
     } catch (error) {
-      console.error(`Erreur lors de l'annulation du booking ${bookingId}:`, error);
+      logger.error(`Erreur lors de l'annulation du booking ${bookingId}:`, error);
     }
   }
 
@@ -214,7 +215,7 @@ export class StripeService {
 
   // Récupérer tous les PaymentIntent réussis (5 derniers jours - pour l'admin)
   async getSuccessfulPayments(): Promise<Stripe.PaymentIntent[]> {
-    console.log('🔍 [StripeService] Récupération des paiements réussis...');
+    logger.log('🔍 [StripeService] Récupération des paiements réussis...');
     
     try {
       const paymentIntents = await this.stripe.paymentIntents.list({
@@ -238,7 +239,7 @@ export class StripeService {
           
           const hasRefunds = refunds.data.length > 0;
           
-          console.log(`🔍 [DEBUG] PaymentIntent ${pi.id}:`, {
+          logger.log(`🔍 [DEBUG] PaymentIntent ${pi.id}:`, {
             status: pi.status,
             amount: pi.amount,
             amount_received: pi.amount_received,
@@ -250,16 +251,16 @@ export class StripeService {
             successfulPayments.push(pi);
           }
         } catch (error) {
-          console.error(`❌ Erreur vérification remboursements pour ${pi.id}:`, error);
+          logger.error(`❌ Erreur vérification remboursements pour ${pi.id}:`, error);
         }
       }
     }
 
-    console.log(`📊 [StripeService] ${successfulPayments.length} paiements réussis trouvés (sans remboursements)`);
-    console.log(`🔍 [StripeService] Détail des paiements filtrés:`, successfulPayments.map(p => ({ id: p.id, amount: p.amount, amount_received: p.amount_received })));
+    logger.log(`📊 [StripeService] ${successfulPayments.length} paiements réussis trouvés (sans remboursements)`);
+    logger.log(`🔍 [StripeService] Détail des paiements filtrés:`, successfulPayments.map(p => ({ id: p.id, amount: p.amount, amount_received: p.amount_received })));
     return successfulPayments;
     } catch (error) {
-      console.error('❌ [StripeService] Erreur lors de la récupération des paiements:', error);
+      logger.error('❌ [StripeService] Erreur lors de la récupération des paiements:', error);
       throw new BadRequestException(`Erreur lors de la récupération des paiements: ${error.message}`);
     }
   }

@@ -25,6 +25,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PdfGeneratorService } from '../email/pdf-generator.service';
 import type { Response } from 'express';
+import { logger } from '../../common/utils/logger';
 
 /**
  * Contrôleur de réservations
@@ -51,7 +52,7 @@ export class BookingsController {
       const accessToken = req.cookies?.access_token;
       
       if (!accessToken) {
-        console.log('🔐 [AUTH] Aucun token trouvé dans les cookies');
+        logger.log('🔐 [AUTH] Aucun token trouvé dans les cookies');
         return { userId: null, isGuest: true };
       }
 
@@ -60,7 +61,7 @@ export class BookingsController {
         secret: this.configService.get<string>('JWT_SECRET')
       });
 
-      console.log('🔐 [AUTH] Token décodé avec succès:', {
+      logger.log('🔐 [AUTH] Token décodé avec succès:', {
         sub: payload.sub,
         email: payload.email,
         role: payload.role
@@ -71,7 +72,7 @@ export class BookingsController {
         isGuest: false
       };
     } catch (error) {
-      console.log('🔐 [AUTH] Erreur lors du décodage du token:', error.message);
+      logger.log('🔐 [AUTH] Erreur lors du décodage du token:', error.message);
       return { userId: null, isGuest: true };
     }
   }
@@ -85,7 +86,7 @@ export class BookingsController {
     @Body() availablePlacesDto: AvailablePlacesDto
   ): Promise<{ placesDisponibles: number }> {
     try {
-      console.log('🔍 [PLACES] Vérification des places disponibles...', {
+      logger.log('🔍 [PLACES] Vérification des places disponibles...', {
         retreatId: availablePlacesDto.retreatId,
         date: availablePlacesDto.date
       });
@@ -95,11 +96,11 @@ export class BookingsController {
         new Date(availablePlacesDto.date)
       );
 
-      console.log('✅ [PLACES] Places disponibles:', placesDisponibles);
+      logger.log('✅ [PLACES] Places disponibles:', placesDisponibles);
 
       return { placesDisponibles };
     } catch (error) {
-      console.error('❌ [PLACES] Erreur lors de la vérification:', error.message);
+      logger.error('❌ [PLACES] Erreur lors de la vérification:', error.message);
       throw error;
     }
   }
@@ -108,18 +109,18 @@ export class BookingsController {
   @HttpCode(HttpStatus.CREATED)
   async createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req: any) {
     // 🎯 LOGS D'AUTHENTIFICATION DÉTAILLÉS
-    console.log('🔐 [AUTH] ===== VÉRIFICATION AUTHENTIFICATION BACKEND =====');
-    console.log('🔐 [AUTH] req.user:', req.user);
-    console.log('🔐 [AUTH] req.user?.sub:', req.user?.sub);
-    console.log('🔐 [AUTH] Headers authorization:', req.headers.authorization);
-    console.log('🔐 [AUTH] Headers cookie:', req.headers.cookie);
-    console.log('🔐 [AUTH] Tous les headers:', req.headers);
-    console.log('🔐 [AUTH] ================================================');
+    logger.log('🔐 [AUTH] ===== VÉRIFICATION AUTHENTIFICATION BACKEND =====');
+    logger.log('🔐 [AUTH] req.user:', req.user);
+    logger.log('🔐 [AUTH] req.user?.sub:', req.user?.sub);
+    logger.log('🔐 [AUTH] Headers authorization:', req.headers.authorization);
+    logger.log('🔐 [AUTH] Headers cookie:', req.headers.cookie);
+    logger.log('🔐 [AUTH] Tous les headers:', req.headers);
+    logger.log('🔐 [AUTH] ================================================');
     
     // Extraire l'utilisateur depuis les cookies (optionnel)
     const { userId, isGuest } = this.extractUserFromCookies(req);
     
-    console.log('📝 [BOOKING] Création d\'un booking...', {
+    logger.log('📝 [BOOKING] Création d\'un booking...', {
       retreatId: createBookingDto.retreatId,
       nbPlaces: createBookingDto.nbPlaces,
       date: createBookingDto.dateStart,
@@ -181,7 +182,7 @@ export class BookingsController {
       // Envoyer le PDF
       res.send(pdfBuffer);
     } catch (error) {
-      console.error('Erreur lors de la génération du PDF:', error);
+      logger.error('Erreur lors de la génération du PDF:', error);
       res.status(500).json({ message: 'Erreur lors de la génération du PDF' });
     }
   }
@@ -307,7 +308,7 @@ export class BookingsController {
   @Post('admin/create')
   @HttpCode(HttpStatus.CREATED)
   async createBookingByAdmin(@Body() createBookingDto: CreateBookingDto) {
-    console.log('👨‍💼 [ADMIN] Création manuelle d\'une réservation...');
+    logger.log('👨‍💼 [ADMIN] Création manuelle d\'une réservation...');
     return this.bookingsService.createBookingByAdmin(createBookingDto);
   }
 }
