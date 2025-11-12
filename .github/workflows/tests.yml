@@ -49,13 +49,12 @@ jobs:
         working-directory: lutea-backend
         run: |
           cat > .env.test << EOF
-          # MongoDB local Docker (démarré dans services)
-          MONGODB_URI=mongodb://localhost:27017/lutea_test
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
           
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
           
-          # Stripe (clés de test)
+          # Stripe
           STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
           

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # MongoDB pour les tests E2E
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=lutea_test
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Backend pour les tests
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # Variables depuis .env.docker (chargées en premier)
+    env_file:
+      - .env.docker
+    # Variables qui surchargent .env.docker (MongoDB utilise le service mongo)
+    environment:
+      - NODE_ENV=test
+      - MONGODB_URI=mongodb://mongo:27017/lutea_test
+      - PORT=3002
+    # Commandes : tests unitaires puis E2E
+    command: sh -c "npm test && npm run test:e2e"
+    profiles:
+      - test
+
