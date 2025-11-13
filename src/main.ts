@@ -46,7 +46,11 @@ async function bootstrap() {
   
   // Configuration CORS pour permettre au frontend de se connecter
   // Frontend Next.js sur le port 3000, Backend sur le port 3001
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  
+  // Enlevele slash final s'il existe (peut causer des problèmes CORS)
+  frontendUrl = frontendUrl.replace(/\/$/, '');
+  
   app.enableCors({
     origin: frontendUrl,
     credentials: true, // Permet l'envoi de cookies et d'en-têtes d'authentification
@@ -79,6 +83,11 @@ async function bootstrap() {
   logger.log(`🔗 [Main] Frontend autorisé : ${frontendUrl}`);
   logger.log(`🔒 [Main] Mode sécurité : ${process.env.NODE_ENV || 'development'}`);
   logger.log(`📧 [Main] Service email : Resend`);
-  logger.log(`🗄️ [Main] Base de données : MongoDB`);
+  logger.log(`🗄️ [Main] Base de données : MongoDB (opérationnel)`);
+  
+  // Vérification connexion MySQL
+  const mysqlHost = process.env.MYSQL_HOST || 'localhost';
+  const mysqlDatabase = process.env.MYSQL_DATABASE || 'lutea_analytics';
+  logger.log(`🗄️ [Main] Base de données Analytics : MySQL (${mysqlHost}/${mysqlDatabase})`);
 }
 bootstrap();

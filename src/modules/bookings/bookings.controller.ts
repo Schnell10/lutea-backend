@@ -86,17 +86,10 @@ export class BookingsController {
     @Body() availablePlacesDto: AvailablePlacesDto
   ): Promise<{ placesDisponibles: number }> {
     try {
-      logger.log('🔍 [PLACES] Vérification des places disponibles...', {
-        retreatId: availablePlacesDto.retreatId,
-        date: availablePlacesDto.date
-      });
-
       const placesDisponibles = await this.bookingsService.getAvailablePlaces(
         availablePlacesDto.retreatId,
         new Date(availablePlacesDto.date)
       );
-
-      logger.log('✅ [PLACES] Places disponibles:', placesDisponibles);
 
       return { placesDisponibles };
     } catch (error) {

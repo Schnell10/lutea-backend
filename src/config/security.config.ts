@@ -59,6 +59,6 @@ export const securityConfig = {
   // Configuration du logging (console.log)
   // debug: true = Voir tous les logs | debug: false = Masquer les logs
   logging: {
-    debug: false, 
+    debug: true,
   },
 };

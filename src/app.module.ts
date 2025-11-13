@@ -7,6 +7,9 @@ import { ConfigModule } from '@nestjs/config';
 // Import du module Mongoose pour MongoDB
 import { MongooseModule } from '@nestjs/mongoose';
 
+// Import du module TypeORM pour MySQL
+import { TypeOrmModule } from '@nestjs/typeorm';
+
 // Import du module de planification (cron jobs)
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -21,6 +24,7 @@ import { EmailModule } from './modules/email/email.module';
 import { RetreatsModule } from './modules/retreats/retreats.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { StripeModule } from './modules/stripe/stripe.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 
 @Module({
@@ -41,6 +45,20 @@ import { StripeModule } from './modules/stripe/stripe.module';
       process.env.MONGODB_URI || 'mongodb://localhost:27017/lutea'
     ),
     
+    // Connexion à MySQL pour Analytics
+    // Note: TypeORM se connecte de manière asynchrone, ne bloque pas MongoDB
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: process.env.MYSQL_HOST || 'localhost',
+      port: parseInt(process.env.MYSQL_PORT || '3306'),
+      username: process.env.MYSQL_USER || 'root',
+      password: process.env.MYSQL_PASSWORD || '',
+      database: process.env.MYSQL_DATABASE || 'lutea_analytics',
+      entities: [__dirname + '/modules/analytics/entities/*.entity{.ts,.js}'],
+      synchronize: false, // Désactivé car les tables sont créées manuellement via SQL
+      logging: false, // Désactivé pour réduire les logs (seulement les messages importants)
+    }),
+    
     // Module de planification pour les cron jobs
     ScheduleModule.forRoot(),
     
@@ -51,6 +69,7 @@ import { StripeModule } from './modules/stripe/stripe.module';
     RetreatsModule, // Gestion des retraites
     BookingsModule, // Gestion des réservations
     StripeModule,   // Intégration Stripe
+    AnalyticsModule, // Analytics et logs
   ],
   
   // Contrôleurs globaux (si nécessaire)

@@ -63,13 +63,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       params: request.params,
     };
 
+    // Ignorer les 401 sur /auth/profile (vérification normale pour analytics)
+    const isAuthProfile401 = status === 401 && request.url === '/auth/profile';
+
     if (status >= 500) {
       // Erreur serveur - log en erreur
       this.logger.error('Erreur serveur détectée', errorLog);
-    } else {
-      // Erreur client - log en warning
+    } else if (!isAuthProfile401) {
+      // Erreur client - log en warning (sauf 401 sur /auth/profile)
       this.logger.warn('Erreur client détectée', errorLog);
     }
+    // Les 401 sur /auth/profile sont silencieuses (vérification normale)
 
     // Réponse côté client (générique pour la sécurité)
     const errorResponse = {

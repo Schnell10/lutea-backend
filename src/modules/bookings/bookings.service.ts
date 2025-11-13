@@ -340,12 +340,6 @@ export class BookingsService {
   async getAvailablePlaces(retreatId: string, date: Date): Promise<number> {
     // Convertir la date en objet Date si ce n'est pas déjà le cas
     const dateObj = date instanceof Date ? date : new Date(date);
-    
-    logger.log(`🔍 [PLACES] Vérification des places disponibles...`, {
-      retreatId,
-      date: dateObj.toISOString(),
-      timestamp: new Date().toISOString()
-    });
 
     if (!Types.ObjectId.isValid(retreatId)) {
       logger.error('❌ [PLACES] ID de retraite invalide:', retreatId);
@@ -367,12 +361,6 @@ export class BookingsService {
       logger.error('❌ [PLACES] Date non trouvée dans la retraite:', dateObj);
       throw new NotFoundException('Date de retraite non trouvée');
     }
-
-    logger.log(`📋 [PLACES] Retraite trouvée:`, {
-      titreCard: retreat.titreCard,
-      date: dateObj,
-      capaciteMax: selectedDate.places
-    });
 
     // Compter les places déjà réservées (bookings confirmés ET pending)
     const placesReservees = await this.bookingModel.aggregate([
@@ -402,14 +390,6 @@ export class BookingsService {
 
     const totalPlacesReservees = placesReservees.length > 0 ? placesReservees[0].totalPlaces : 0;
     const placesDisponibles = selectedDate.places - totalPlacesReservees;
-
-    logger.log(`✅ [PLACES] Calcul terminé:`, {
-      capaciteMax: selectedDate.places,
-      placesReservees: totalPlacesReservees,
-      placesDisponibles: Math.max(0, placesDisponibles),
-      retraite: retreat.titreCard,
-      date: dateObj
-    });
 
     return Math.max(0, placesDisponibles);
   }
