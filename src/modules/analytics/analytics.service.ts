@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Session } from './entities/session.entity.js';
-import { UserEvent } from './entities/user-event.entity.js';
-import { EventType } from './entities/event-type.entity.js';
+import { Session } from './entities/session.entity';
+import { UserEvent } from './entities/user-event.entity';
+import { EventType } from './entities/event-type.entity';
 import { CreateSessionDto, UpdateSessionDto, CreateUserEventDto } from './dto/analytics.dto';
 import { logger } from '../../common/utils/logger';
 

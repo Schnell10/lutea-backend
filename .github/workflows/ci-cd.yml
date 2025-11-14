@@ -53,12 +53,18 @@ jobs:
         run: |
           cat > .env.test << EOF
           MONGODB_URI=mongodb://localhost:27017/lutea_test
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
-          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
-          RECAPTCHA_SECRET_KEY=${{ secrets.RECAPTCHA_SECRET_KEY }}
+          
+          JWT_SECRET=test_jwt_secret_for_testing_only
+          JWT_REFRESH_SECRET=test_refresh_secret_for_testing_only
+          
+          # Stripe
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY_TEST }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET_TEST }}
+          
+          RESEND_API_KEY=re_test_fake_key
+          
+          RECAPTCHA_SECRET_KEY=6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+          
           PORT=3002
           EOF
 

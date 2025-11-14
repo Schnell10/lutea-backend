@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
-import { UserEvent } from './user-event.entity.js';
+import { UserEvent } from './user-event.entity';
 
 @Entity('Session')
 export class Session {

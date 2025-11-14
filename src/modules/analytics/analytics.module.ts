@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
-import { Session } from './entities/session.entity.js';
-import { UserEvent } from './entities/user-event.entity.js';
-import { EventType } from './entities/event-type.entity.js';
+import { Session } from './entities/session.entity';
+import { UserEvent } from './entities/user-event.entity';
+import { EventType } from './entities/event-type.entity';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 

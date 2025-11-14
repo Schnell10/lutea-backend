@@ -45,17 +45,33 @@ async function bootstrap() {
   logger.log('📄 [Main] Middleware JSON activé pour les autres routes');
   
   // Configuration CORS pour permettre au frontend de se connecter
-  // Frontend Next.js sur le port 3000, Backend sur le port 3001
-  let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  
-  // Enlevele slash final s'il existe (peut causer des problèmes CORS)
-  frontendUrl = frontendUrl.replace(/\/$/, '');
+  // En production : uniquement l'URL du frontend Vercel
+  // En développement : localhost:3000
+  const allowedOrigins = process.env.FRONTEND_URL 
+    ? process.env.FRONTEND_URL.split(',').map(url => url.trim().replace(/\/$/, ''))
+    : ['http://localhost:3000'];
   
   app.enableCors({
-    origin: frontendUrl,
+    origin: (origin, callback) => {
+      // En développement, autoriser toutes les origines localhost
+      if (process.env.NODE_ENV !== 'production') {
+        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+          return callback(null, true);
+        }
+      }
+      
+      // En production, vérifier strictement l'origine
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true, // Permet l'envoi de cookies et d'en-têtes d'authentification
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
-  logger.log(`🌐 [Main] CORS configuré pour: ${frontendUrl}`);
+  logger.log(`🌐 [Main] CORS configuré pour: ${allowedOrigins.join(', ')}`);
   
   // Validation globale des données avec ValidationPipe
   // Valide automatiquement tous les DTOs selon leurs décorateurs
@@ -80,7 +96,7 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`🎉 [Main] Application Lutea démarrée avec succès !`);
   logger.log(`📱 [Main] Accès : http://localhost:${port}`);
-  logger.log(`🔗 [Main] Frontend autorisé : ${frontendUrl}`);
+  logger.log(`🔗 [Main] Frontend autorisé : ${allowedOrigins.join(', ')}`);
   logger.log(`🔒 [Main] Mode sécurité : ${process.env.NODE_ENV || 'development'}`);
   logger.log(`📧 [Main] Service email : Resend`);
   logger.log(`🗄️ [Main] Base de données : MongoDB (opérationnel)`);

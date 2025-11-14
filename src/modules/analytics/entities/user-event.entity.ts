@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Session } from './session.entity.js';
-import { EventType } from './event-type.entity.js';
+import { Session } from './session.entity';
+import { EventType } from './event-type.entity';
 
 @Entity('UserEvent')
 export class UserEvent {
