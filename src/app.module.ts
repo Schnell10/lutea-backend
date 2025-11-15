@@ -24,7 +24,8 @@ import { EmailModule } from './modules/email/email.module';
 import { RetreatsModule } from './modules/retreats/retreats.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { StripeModule } from './modules/stripe/stripe.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
+// AnalyticsModule : import conditionnel pour éviter les erreurs en mode test
+// On ne l'importe que si nécessaire pour éviter que NestJS résolve les dépendances TypeORM
 
 
 @Module({
@@ -48,7 +49,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     // Connexion à MySQL pour Analytics
     // MySQL est optionnel : chargé seulement si les variables sont présentes
     // Si MySQL est indisponible, l'app continue de fonctionner (seulement les analytics sont désactivées)
-    // En mode test, on configure TypeORM avec une config factice pour éviter les erreurs d'injection
+    // En mode test, on ne configure PAS TypeORM pour éviter les erreurs de connexion
     ...(process.env.NODE_ENV !== 'test' && 
         process.env.MYSQL_HOST && 
         process.env.MYSQL_USER && 
@@ -88,34 +89,6 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
           return config;
         },
       }),
-    ] : process.env.NODE_ENV === 'test' ? [
-      // En mode test, on configure TypeORM avec une config factice
-      // Cette config permet à NestJS de résoudre les dépendances TypeORM
-      // On utilise forRootAsync avec une factory qui gère l'erreur de connexion
-      TypeOrmModule.forRootAsync({
-        useFactory: () => {
-          // Configuration factice pour les tests
-          // TypeORM va essayer de se connecter mais échouera, ce qui est OK
-          return {
-            type: 'mysql' as const,
-            host: 'localhost',
-            port: 3306,
-            username: 'test',
-            password: 'test',
-            database: 'test',
-            entities: [__dirname + '/modules/analytics/entities/*.entity{.ts,.js}'],
-            synchronize: false,
-            logging: false,
-            // En mode test, on accepte que la connexion échoue
-            retryAttempts: 0,
-            retryDelay: 0,
-            // Ne pas charger automatiquement les entités
-            autoLoadEntities: false,
-          };
-        },
-        // En mode test, on ignore les erreurs de connexion
-        // L'application continuera de fonctionner même si MySQL n'est pas disponible
-      }),
     ] : []),
     
     // Module de planification pour les cron jobs
@@ -128,10 +101,18 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     RetreatsModule, // Gestion des retraites
     BookingsModule, // Gestion des réservations
     StripeModule,   // Intégration Stripe
-    // AnalyticsModule : chargé seulement si MySQL est configuré
+    // AnalyticsModule : chargé seulement si MySQL est configuré ET pas en mode test
     // Si MySQL n'est pas disponible, l'app fonctionne normalement (sans analytics)
-    // Utilisation d'un module dynamique pour éviter les erreurs d'injection en mode test
-    AnalyticsModule.forRoot(),
+    // En mode test, on ne charge PAS AnalyticsModule pour éviter les erreurs TypeORM
+    ...(process.env.NODE_ENV !== 'test' && 
+        process.env.MYSQL_HOST && 
+        process.env.MYSQL_USER && 
+        process.env.MYSQL_PASSWORD ? [
+      // Import dynamique pour éviter que NestJS résolve les dépendances TypeORM en mode test
+      // On utilise require() car c'est la seule façon de rendre l'import vraiment conditionnel
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./modules/analytics/analytics.module').AnalyticsModule.forRoot(),
+    ] : []),
   ],
   
   // Contrôleurs globaux (si nécessaire)
