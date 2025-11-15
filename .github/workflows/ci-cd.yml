@@ -127,7 +127,7 @@ jobs:
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
 
   # ==========================================
-  # JOB 3: Déclencher déploiement Render (seulement si Docker Hub OK)
+  # JOB 3: Déclencher redéploiement Render (seulement si Docker Hub OK et sur main)
   # ==========================================
   deploy-render:
     name: Déployer sur Render
@@ -139,5 +139,6 @@ jobs:
     steps:
       - name: Trigger Render deployment
         run: |
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || echo "Déploiement Render déclenché"
-
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          echo "Déploiement Render déclenché"
+          

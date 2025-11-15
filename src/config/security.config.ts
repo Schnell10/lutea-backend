@@ -1,6 +1,9 @@
 // Configuration centralisée de la sécurité pour l'application Lutea
 // Ce fichier regroupe tous les paramètres de sécurité en un seul endroit
 
+// Configuration sameSite pour les cookies : 'none' en production (cross-domain), 'strict' en dev
+const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) : ('strict' as const);
+
 export const securityConfig = {
   // Configuration des JWT (JSON Web Tokens)
   jwt: {
@@ -51,14 +54,14 @@ export const securityConfig = {
 
   // Configuration de la sécurité des sessions
   session: {
-    secure: process.env.NODE_ENV === 'production', // Cookies sécurisés en production
+    secure: process.env.NODE_ENV === 'production', // Cookies sécurisés en production (HTTPS obligatoire avec sameSite: 'none')
     httpOnly: true,       // Protection XSS
-    sameSite: 'strict' as const, // Protection CSRF
+    sameSite: sameSiteValue, // Cross-domain en prod (Vercel ↔ Render), strict en dev
   },
 
   // Configuration du logging (console.log)
   // debug: true = Voir tous les logs | debug: false = Masquer les logs
   logging: {
-    debug: false, // Production : masquer les logs sensibles
+    debug: true, // Production : masquer les logs sensibles
   },
 };

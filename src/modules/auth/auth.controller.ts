@@ -76,10 +76,13 @@ export class AuthController {
     const tokens = this.authService.login(req.user);
     
     // Configuration des cookies sécurisés
+    // sameSite: 'none' en production pour permettre cross-domain (Vercel ↔ Render)
+    // Nécessite secure: true (HTTPS obligatoire)
+    const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) : ('strict' as const);
     const cookieOptions = {
       httpOnly: true,           // Pas accessible via JavaScript (XSS protection)
-      secure: process.env.NODE_ENV === 'production', // HTTPS en production
-      sameSite: 'strict' as const, // Protection CSRF
+      secure: process.env.NODE_ENV === 'production', // HTTPS en production (obligatoire avec sameSite: 'none')
+      sameSite: sameSiteValue,  // Cross-domain en prod, strict en dev
       maxAge: 15 * 60 * 1000,  // 15 minutes (access token)
       path: '/',                // Disponible sur tout le site
     };
@@ -117,10 +120,12 @@ export class AuthController {
     const newTokens = await this.authService.refreshToken(refreshToken);
     
     // Mettre à jour le cookie d'access token
+    // sameSite: 'none' en production pour permettre cross-domain (Vercel ↔ Render)
+    const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) : ('strict' as const);
     res.cookie('access_token', newTokens.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
+      sameSite: sameSiteValue,
       maxAge: 15 * 60 * 1000,
       path: '/',
     });
@@ -163,10 +168,12 @@ export class AuthController {
     const tokens = await this.authService.finalizeAdminLogin(finalizeLoginDto.email, finalizeLoginDto.code);
     
     // Émettre les cookies sécurisés
+    // sameSite: 'none' en production pour permettre cross-domain (Vercel ↔ Render)
+    const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) : ('strict' as const);
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
+      sameSite: sameSiteValue,
       maxAge: 15 * 60 * 1000,
       path: '/',
     };
@@ -241,10 +248,12 @@ export class AuthController {
     const result = await this.authService.validateEmail(validateEmailDto.token);
     
     // Connexion automatique après validation : émettre les cookies sécurisés
+    // sameSite: 'none' en production pour permettre cross-domain (Vercel ↔ Render)
+    const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) : ('strict' as const);
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
+      sameSite: sameSiteValue,
       maxAge: 15 * 60 * 1000,
       path: '/',
     };

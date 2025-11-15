@@ -39,13 +39,10 @@ Dans GitHub : Settings → Secrets and variables → Actions
 **Docker Hub :**
 - DOCKERHUB_USERNAME
 - DOCKERHUB_TOKEN (Access Token, pas le mot de passe)
++ clef stripe
++ clef deploy render (voir tout ça dans .env)
 
-**Tests :**
-- JWT_SECRET
-- STRIPE_SECRET_KEY
-- STRIPE_WEBHOOK_SECRET
-- RESEND_API_KEY
-- RECAPTCHA_SECRET_KEY
+
 
 
 ### Docker Hub

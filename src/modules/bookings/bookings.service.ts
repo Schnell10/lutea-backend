@@ -506,13 +506,27 @@ export class BookingsService {
       confirmedBookings: number;
       discrepancy: number;
     }>;
+    bookingDiscrepancies: Array<{
+      bookingId: string;
+      paymentIntentId: string;
+      retreatId: string;
+      retreatName: string;
+      sessionDate: string;
+      clientEmail: string;
+      amount: number;
+      amountRefunded?: number;
+      createdAt: Date;
+      problem: string;
+    }>;
     summary: {
       totalDiscrepancies: number;
       sessionsWithIssues: number;
       retreatsWithIssues: number;
+      orphanPaymentsCount: number;
+      orphanBookingsCount: number;
     };
   }> {
-    logger.log(`🔍 [BookingsService] Vérification des incohérences de paiement par session (délai de grâce: ${gracePeriodMinutes}min)...`);
+    logger.log(`[BookingsService] Vérification des incohérences de paiement (délai de grâce: ${gracePeriodMinutes}min)...`);
 
     // Calculer la date limite pour le délai de grâce
     const gracePeriodAgo = new Date(Date.now() - gracePeriodMinutes * 60 * 1000);
@@ -520,21 +534,16 @@ export class BookingsService {
     // 1. Récupérer les PaymentIntent réussis de Stripe des 5 derniers jours
     const stripePayments = await this.stripeService.getSuccessfulPayments();
     
-    logger.log(`📊 [BookingsService] Paiements Stripe récupérés (5 derniers jours):`, stripePayments.length);
-    
     // 2. Récupérer SEULEMENT les bookings Stripe des 5 derniers jours
     const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
     
     const allBookings = await this.bookingModel.find({
       createdAt: { 
         $gte: fiveDaysAgo
-        // Supprimé: $lt: gracePeriodAgo pour inclure TOUS les bookings
       },
-      isStripeBooking: true, // ← SEULEMENT les bookings créés via Stripe
-      statut: 'CONFIRMED' // ← SEULEMENT les bookings confirmés (avec paiement)
+      isStripeBooking: true, // SEULEMENT les bookings créés via Stripe (pas ceux créés manuellement)
+      statut: 'CONFIRMED' // SEULEMENT les bookings confirmés (avec paiement)
     }).populate('retreatId', 'titreCard dates');
-
-    logger.log(`📊 [BookingsService] Bookings Stripe récupérés (5 derniers jours):`, allBookings.length);
 
     // 3. Créer un mapping des paiements Stripe par stripePaymentIntentId
     const stripeByPaymentId = new Map<string, Stripe.PaymentIntent>();
@@ -560,8 +569,7 @@ export class BookingsService {
         const isRecentPayment = paymentDate > gracePeriodAgo;
         
         if (isRecentPayment) {
-          logger.log(`⏰ [BookingsService] Paiement récent ignoré (délai de grâce): ${paymentId}`);
-          continue; // Ignorer les paiements récents
+          continue; // Ignorer les paiements récents (délai de grâce)
         }
         
         // Paiement sans booking correspondant (et pas récent)
@@ -604,17 +612,65 @@ export class BookingsService {
       }
     }
 
-    // 6. Calculer le résumé
+    // 6. VÉRIFICATION INVERSE : Détecter les bookings sans paiement Stripe valide
+    const orphanBookings = [];
+    for (const booking of allBookings) {
+      if (!booking.stripePaymentIntentId) {
+        continue; // Booking sans PaymentIntent ID, on ignore
+      }
+
+      const paymentIntentId = booking.stripePaymentIntentId;
+      const stripePayment = stripeByPaymentId.get(paymentIntentId);
+
+      if (!stripePayment) {
+        // Booking avec un PaymentIntent ID qui n'existe pas dans la liste des paiements réussis
+        // Cela signifie soit : PaymentIntent introuvable, annulé, ou remboursé (car getSuccessfulPayments() filtre les remboursements)
+        const retreat = booking.retreatId as any;
+        orphanBookings.push({
+          bookingId: booking._id.toString(),
+          paymentIntentId: paymentIntentId,
+          retreatId: booking.retreatId?.toString() || 'N/A',
+          retreatName: retreat?.titreCard || 'N/A',
+          sessionDate: booking.dateStart ? new Date(booking.dateStart).toISOString().split('T')[0] : 'N/A',
+          clientEmail: booking.participants?.[0]?.email || 'N/A',
+          amount: booking.prixTotal || 0,
+          createdAt: (booking as any).createdAt || new Date(),
+          problem: 'PaymentIntent introuvable dans les paiements réussis Stripe (peut-être remboursé, annulé, ou introuvable)'
+        });
+      }
+      // Si stripePayment existe, c'est qu'il est dans la liste des paiements réussis sans remboursement, donc pas de problème
+    }
+
+    // 7. Calculer le résumé total (paiements orphelins + bookings orphelins)
+    const totalDiscrepancies = orphanPayments.length + orphanBookings.length;
     const summary = {
-      totalDiscrepancies: orphanPayments.length,
-      sessionsWithIssues: orphanPayments.length,
-      retreatsWithIssues: new Set(orphanPayments.map(p => p.retreatId)).size
+      totalDiscrepancies,
+      sessionsWithIssues: totalDiscrepancies,
+      retreatsWithIssues: new Set([
+        ...orphanPayments.map(p => p.retreatId),
+        ...orphanBookings.map(b => b.retreatId)
+      ]).size,
+      orphanPaymentsCount: orphanPayments.length,
+      orphanBookingsCount: orphanBookings.length
     };
 
-    logger.log(`📊 [BookingsService] Incohérences détectées:`, summary);
+    // Log détaillé des paiements orphelins
+    if (orphanPayments.length > 0) {
+      orphanPayments.forEach((payment) => {
+        logger.log(`[BookingsService] Paiement Stripe sans booking correspondant - PaymentIntent: ${payment.paymentId} | Retraite: ${payment.retreatName} | Date: ${payment.sessionDate} | Email: ${payment.clientEmail}`);
+      });
+    }
+
+    // Log détaillé des bookings orphelins
+    if (orphanBookings.length > 0) {
+      orphanBookings.forEach((booking) => {
+        logger.log(`[BookingsService] Booking sans paiement Stripe valide - Booking ID: ${booking.bookingId} | PaymentIntent: ${booking.paymentIntentId} | Retraite: ${booking.retreatName} | Date: ${booking.sessionDate} | Email: ${booking.clientEmail}`);
+      });
+    }
 
     return {
       sessionDiscrepancies: orphanPayments,
+      bookingDiscrepancies: orphanBookings,
       summary
     };
   }
