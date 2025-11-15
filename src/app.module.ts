@@ -46,18 +46,48 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     ),
     
     // Connexion à MySQL pour Analytics
-    // Note: TypeORM se connecte de manière asynchrone, ne bloque pas MongoDB
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: process.env.MYSQL_HOST || 'localhost',
-      port: parseInt(process.env.MYSQL_PORT || '3306'),
-      username: process.env.MYSQL_USER || 'root',
-      password: process.env.MYSQL_PASSWORD || '',
-      database: process.env.MYSQL_DATABASE || 'lutea_analytics',
-      entities: [__dirname + '/modules/analytics/entities/*.entity{.ts,.js}'],
-      synchronize: false, // Désactivé car les tables sont créées manuellement via SQL
-      logging: false, // Désactivé pour réduire les logs (seulement les messages importants)
-    }),
+    // MySQL est optionnel : chargé seulement si les variables sont présentes
+    // Si MySQL est indisponible, l'app continue de fonctionner (seulement les analytics sont désactivées)
+    ...(process.env.NODE_ENV !== 'test' && 
+        process.env.MYSQL_HOST && 
+        process.env.MYSQL_USER && 
+        process.env.MYSQL_PASSWORD ? [
+      TypeOrmModule.forRootAsync({
+        useFactory: () => {
+          const config: any = {
+            type: 'mysql' as const,
+            host: process.env.MYSQL_HOST,
+            port: parseInt(process.env.MYSQL_PORT || '3306'),
+            username: process.env.MYSQL_USER,
+            password: process.env.MYSQL_PASSWORD,
+            database: process.env.MYSQL_DATABASE || 'lutea_analytics',
+            entities: [__dirname + '/modules/analytics/entities/*.entity{.ts,.js}'],
+            synchronize: false, // Désactivé car les tables sont créées manuellement via SQL
+            logging: false, // Désactivé pour réduire les logs
+            retryAttempts: 3, // Réessayer 3 fois en cas d'échec
+            retryDelay: 3000, // Attendre 3 secondes entre chaque tentative
+          };
+
+          // Configuration SSL pour Aiven (ou autres services qui nécessitent SSL)
+          // Si MYSQL_SSL_CA est fourni, utiliser le certificat CA
+          // Sinon, utiliser SSL sans vérification stricte (pour Aiven)
+          if (process.env.MYSQL_SSL_CA) {
+            // Utiliser le certificat CA fourni
+            config.ssl = {
+              ca: process.env.MYSQL_SSL_CA,
+              rejectUnauthorized: true,
+            };
+          } else if (process.env.MYSQL_SSL === 'true' || process.env.MYSQL_SSL === 'required') {
+            // SSL requis mais sans certificat CA (Aiven accepte ça)
+            config.ssl = {
+              rejectUnauthorized: false, // Accepter le certificat sans vérification stricte
+            };
+          }
+
+          return config;
+        },
+      }),
+    ] : []),
     
     // Module de planification pour les cron jobs
     ScheduleModule.forRoot(),
@@ -69,7 +99,12 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     RetreatsModule, // Gestion des retraites
     BookingsModule, // Gestion des réservations
     StripeModule,   // Intégration Stripe
-    AnalyticsModule, // Analytics et logs
+    // AnalyticsModule : chargé seulement si MySQL est configuré
+    // Si MySQL n'est pas disponible, l'app fonctionne normalement (sans analytics)
+    ...(process.env.NODE_ENV !== 'test' && 
+        process.env.MYSQL_HOST && 
+        process.env.MYSQL_USER && 
+        process.env.MYSQL_PASSWORD ? [AnalyticsModule] : []),
   ],
   
   // Contrôleurs globaux (si nécessaire)

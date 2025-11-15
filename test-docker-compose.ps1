@@ -13,22 +13,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "✅ Docker fonctionne" -ForegroundColor Green
 
-# 2. Vérifier/Créer .env.docker
+# 2. Vérifier .env.test
 Write-Host ""
-Write-Host "2️⃣ Vérification .env.docker..." -ForegroundColor Yellow
-if (-not (Test-Path ".env.docker")) {
-    Write-Host "⚠️ .env.docker n'existe pas. Création depuis .env.test..." -ForegroundColor Yellow
-    if (Test-Path ".env.test") {
-        Copy-Item ".env.test" ".env.docker"
-        # MONGODB_URI sera surchargée par docker-compose
-        Write-Host "✅ .env.docker créé" -ForegroundColor Green
-    } else {
-        Write-Host "❌ .env.test n'existe pas non plus !" -ForegroundColor Red
-        Write-Host "Crée .env.docker manuellement." -ForegroundColor Yellow
-        exit 1
-    }
+Write-Host "2️⃣ Vérification .env.test..." -ForegroundColor Yellow
+if (-not (Test-Path ".env.test")) {
+    Write-Host "❌ .env.test n'existe pas !" -ForegroundColor Red
+    Write-Host "Crée .env.test avec tes variables de test." -ForegroundColor Yellow
+    Write-Host "Voir test/README-TESTS.md pour plus d'informations." -ForegroundColor Yellow
+    exit 1
 } else {
-    Write-Host "✅ .env.docker existe" -ForegroundColor Green
+    Write-Host "✅ .env.test existe" -ForegroundColor Green
+    Write-Host "   (MONGODB_URI sera surchargée par docker-compose pour utiliser 'mongo')" -ForegroundColor Gray
 }
 
 # 3. Lancer les tests avec Docker Compose

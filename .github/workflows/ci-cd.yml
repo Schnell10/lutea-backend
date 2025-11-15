@@ -52,6 +52,7 @@ jobs:
         working-directory: lutea-backend
         run: |
           cat > .env.test << EOF
+          NODE_ENV=test
           MONGODB_URI=mongodb://localhost:27017/lutea_test
           
           JWT_SECRET=test_jwt_secret_for_testing_only
@@ -74,10 +75,14 @@ jobs:
 
       - name: Run unit tests
         working-directory: lutea-backend
+        env:
+          NODE_ENV: test
         run: npm test -- --coverage
 
       - name: Run E2E tests
         working-directory: lutea-backend
+        env:
+          NODE_ENV: test
         run: npm run test:e2e
 
   # ==========================================

@@ -101,9 +101,13 @@ async function bootstrap() {
   logger.log(`📧 [Main] Service email : Resend`);
   logger.log(`🗄️ [Main] Base de données : MongoDB (opérationnel)`);
   
-  // Vérification connexion MySQL
-  const mysqlHost = process.env.MYSQL_HOST || 'localhost';
-  const mysqlDatabase = process.env.MYSQL_DATABASE || 'lutea_analytics';
-  logger.log(`🗄️ [Main] Base de données Analytics : MySQL (${mysqlHost}/${mysqlDatabase})`);
+  // Vérification connexion MySQL (optionnel)
+  if (process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_PASSWORD) {
+    const mysqlHost = process.env.MYSQL_HOST;
+    const mysqlDatabase = process.env.MYSQL_DATABASE || 'lutea_analytics';
+    logger.log(`🗄️ [Main] Base de données Analytics : MySQL (${mysqlHost}/${mysqlDatabase})`);
+  } else {
+    logger.log(`⚠️ [Main] Base de données Analytics : MySQL non configurée (analytics désactivées)`);
+  }
 }
 bootstrap();

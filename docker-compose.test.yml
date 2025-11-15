@@ -13,6 +13,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
 
   # Backend pour les tests
   backend:
@@ -22,12 +23,13 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    # Variables depuis .env.docker (chargées en premier)
+    # Variables depuis .env.test (chargées en premier)
     env_file:
-      - .env.docker
-    # Variables qui surchargent .env.docker (MongoDB utilise le service mongo)
+      - .env.test
+    # Variables qui surchargent .env.test (MongoDB utilise le service mongo)
     environment:
       - NODE_ENV=test
+      - RUNNING_IN_DOCKER=true
       - MONGODB_URI=mongodb://mongo:27017/lutea_test
       - PORT=3002
     # Commandes : tests unitaires puis E2E

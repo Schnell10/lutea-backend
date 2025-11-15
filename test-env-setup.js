@@ -11,6 +11,17 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 
+// Si on est dans Docker, les variables sont déjà définies par docker-compose
+// On vérifie via RUNNING_IN_DOCKER=true (défini dans docker-compose.test.yml)
+const isDocker = process.env.RUNNING_IN_DOCKER === 'true' && process.env.MONGODB_URI && process.env.MONGODB_URI.includes('mongo:27017');
+
+if (isDocker) {
+  console.log('✅ Configuration Docker détectée');
+  console.log(`📊 Base de données de test : ${process.env.MONGODB_URI}`);
+  // Dans Docker, les variables sont déjà définies, on n'a rien à faire
+  return;
+}
+
 // Chemin vers le fichier .env.test
 const envTestPath = path.resolve(__dirname, '.env.test');
 
