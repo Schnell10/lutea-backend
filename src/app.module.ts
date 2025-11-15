@@ -7,8 +7,12 @@ import { ConfigModule } from '@nestjs/config';
 // Import du module Mongoose pour MongoDB
 import { MongooseModule } from '@nestjs/mongoose';
 
-// Import du module TypeORM pour MySQL
-import { TypeOrmModule } from '@nestjs/typeorm';
+// Import du module TypeORM pour MySQL (seulement si pas en mode test)
+// En mode test, on ne charge pas TypeORM pour éviter les erreurs
+const TypeOrmModule = process.env.NODE_ENV === 'test' 
+  ? null 
+  : // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@nestjs/typeorm').TypeOrmModule;
 
 // Import du module de planification (cron jobs)
 import { ScheduleModule } from '@nestjs/schedule';
@@ -51,6 +55,7 @@ import { StripeModule } from './modules/stripe/stripe.module';
     // Si MySQL est indisponible, l'app continue de fonctionner (seulement les analytics sont désactivées)
     // En mode test, on ne configure PAS TypeORM pour éviter les erreurs de connexion
     ...(process.env.NODE_ENV !== 'test' && 
+        TypeOrmModule &&
         process.env.MYSQL_HOST && 
         process.env.MYSQL_USER && 
         process.env.MYSQL_PASSWORD ? [
@@ -103,12 +108,9 @@ import { StripeModule } from './modules/stripe/stripe.module';
     StripeModule,   // Intégration Stripe
     // AnalyticsModule : chargé seulement si MySQL est configuré ET pas en mode test
     // Si MySQL n'est pas disponible, l'app fonctionne normalement (sans analytics)
-    // En mode test, on utilise un module factice qui ne charge pas TypeORM
-    ...(process.env.NODE_ENV === 'test' ? [
-      // En mode test, utiliser le module factice qui ne charge pas TypeORM
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('./modules/analytics/analytics.module.test').AnalyticsModule.forRoot(),
-    ] : process.env.MYSQL_HOST && 
+    // En mode test, on ne charge PAS AnalyticsModule du tout pour éviter les erreurs TypeORM
+    ...(process.env.NODE_ENV !== 'test' && 
+        process.env.MYSQL_HOST && 
         process.env.MYSQL_USER && 
         process.env.MYSQL_PASSWORD ? [
       // En production/local, utiliser le vrai module avec TypeORM
