@@ -3,12 +3,8 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, develop]
-    paths:
-      - 'lutea-backend/**'
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'lutea-backend/**'
 
 env:
   REGISTRY: docker.io
@@ -42,14 +38,12 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: lutea-backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: lutea-backend
         run: npm ci
 
       - name: Create .env.test
-        working-directory: lutea-backend
         run: |
           cat > .env.test << EOF
           NODE_ENV=test
@@ -70,17 +64,14 @@ jobs:
           EOF
 
       - name: Run ESLint
-        working-directory: lutea-backend
         run: npm run lint
 
       - name: Run unit tests
-        working-directory: lutea-backend
         env:
           NODE_ENV: test
         run: npm test -- --coverage
 
       - name: Run E2E tests
-        working-directory: lutea-backend
         env:
           NODE_ENV: test
         run: npm run test:e2e
@@ -124,8 +115,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./lutea-backend
-          file: ./lutea-backend/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
