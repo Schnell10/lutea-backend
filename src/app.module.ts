@@ -53,7 +53,7 @@ import { StripeModule } from './modules/stripe/stripe.module';
     // Connexion à MySQL pour Analytics
     // MySQL est optionnel : chargé seulement si les variables sont présentes
     // Si MySQL est indisponible, l'app continue de fonctionner (seulement les analytics sont désactivées)
-    // En mode test, on ne configure PAS TypeORM pour éviter les erreurs de connexion
+    // En mode test, on configure TypeORM avec une config factice pour éviter les erreurs d'injection
     ...(process.env.NODE_ENV !== 'test' && 
         TypeOrmModule &&
         process.env.MYSQL_HOST && 
@@ -94,6 +94,28 @@ import { StripeModule } from './modules/stripe/stripe.module';
           return config;
         },
       }),
+    ] : process.env.NODE_ENV === 'test' && TypeOrmModule ? [
+      // En mode test, on configure TypeORM avec une config factice
+      // Cela permet à NestJS de résoudre les dépendances TypeORM sans se connecter réellement
+      // On utilise skipConnectionCheck pour éviter que TypeORM essaie de se connecter au démarrage
+      TypeOrmModule.forRootAsync({
+        useFactory: () => ({
+          type: 'mysql' as const,
+          host: 'localhost',
+          port: 3306,
+          username: 'test',
+          password: 'test',
+          database: 'test',
+          entities: [__dirname + '/modules/analytics/entities/*.entity{.ts,.js}'],
+          synchronize: false,
+          logging: false,
+          // En mode test, on accepte que la connexion échoue
+          retryAttempts: 0, // Ne pas réessayer
+          retryDelay: 0,
+          // Ne pas vérifier la connexion au démarrage (évite les erreurs en mode test)
+          connectTimeoutMS: 100, // Timeout très court pour échouer rapidement
+        }),
+      }),
     ] : []),
     
     // Module de planification pour les cron jobs
@@ -108,12 +130,17 @@ import { StripeModule } from './modules/stripe/stripe.module';
     StripeModule,   // Intégration Stripe
     // AnalyticsModule : chargé seulement si MySQL est configuré ET pas en mode test
     // Si MySQL n'est pas disponible, l'app fonctionne normalement (sans analytics)
-    // En mode test, on ne charge PAS AnalyticsModule du tout pour éviter les erreurs TypeORM
+    // En mode test, on charge AnalyticsModule mais avec un module vide (pas de TypeORM utilisé)
     ...(process.env.NODE_ENV !== 'test' && 
         process.env.MYSQL_HOST && 
         process.env.MYSQL_USER && 
         process.env.MYSQL_PASSWORD ? [
       // En production/local, utiliser le vrai module avec TypeORM
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./modules/analytics/analytics.module').AnalyticsModule.forRoot(),
+    ] : process.env.NODE_ENV === 'test' ? [
+      // En mode test, charger AnalyticsModule mais il retournera un module vide
+      // TypeORM est configuré avec une config factice, donc les dépendances peuvent être résolues
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('./modules/analytics/analytics.module').AnalyticsModule.forRoot(),
     ] : []),

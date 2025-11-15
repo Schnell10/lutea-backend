@@ -17,6 +17,9 @@ jobs:
   test:
     name: Tests et Linter
     runs-on: ubuntu-latest
+    # Définir NODE_ENV=test au niveau du job pour qu'il soit disponible dès le début
+    env:
+      NODE_ENV: test
 
     services:
       mongodb:
