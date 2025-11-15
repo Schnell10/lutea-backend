@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
-import { AppModule } from '../src/app.module';
 import { createTestUser, loginTestUser } from './helpers/test-helpers';
+import { createTestingModuleWithDiagnostics } from './diagnostic-helper';
 
 describe('Auth Module (e2e)', () => {
   let app: INestApplication;
@@ -21,9 +21,7 @@ describe('Auth Module (e2e)', () => {
     console.log('[E2E Auth] Création du module de test...');
     let moduleFixture: TestingModule;
     try {
-      moduleFixture = await Test.createTestingModule({
-        imports: [AppModule],
-      }).compile();
+      moduleFixture = await createTestingModuleWithDiagnostics();
       console.log('[E2E Auth] Module compilé avec succès');
     } catch (error) {
       console.error('[E2E Auth] ERREUR lors de la compilation du module:', error);
