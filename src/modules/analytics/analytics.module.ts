@@ -1,4 +1,10 @@
 import { Module, DynamicModule } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AnalyticsController } from './analytics.controller';
+import { AnalyticsService } from './analytics.service';
+import { Session } from './entities/session.entity';
+import { UserEvent } from './entities/user-event.entity';
+import { EventType } from './entities/event-type.entity';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 
@@ -22,31 +28,17 @@ export class AnalyticsModule {
       };
     }
 
-    // En production/local, charger TypeORM et les dépendances seulement si nécessaire
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const typeorm = require('@nestjs/typeorm');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const analyticsController = require('./analytics.controller');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const analyticsService = require('./analytics.service');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const sessionEntity = require('./entities/session.entity');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const userEventEntity = require('./entities/user-event.entity');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const eventTypeEntity = require('./entities/event-type.entity');
-
     // Retourner le module complet avec TypeORM si configuré
     return {
       module: AnalyticsModule,
       imports: [
-        typeorm.TypeOrmModule.forFeature([sessionEntity.Session, userEventEntity.UserEvent, eventTypeEntity.EventType]),
+        TypeOrmModule.forFeature([Session, UserEvent, EventType]),
         AuthModule,
         UsersModule,
       ],
-      controllers: [analyticsController.AnalyticsController],
-      providers: [analyticsService.AnalyticsService],
-      exports: [analyticsService.AnalyticsService],
+      controllers: [AnalyticsController],
+      providers: [AnalyticsService],
+      exports: [AnalyticsService],
     };
   }
 }

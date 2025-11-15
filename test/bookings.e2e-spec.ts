@@ -16,10 +16,25 @@ describe('Bookings Module (e2e)', () => {
   // SETUP
   // ==========================================
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    console.log('[E2E Bookings] Variables d\'environnement:');
+    console.log('  NODE_ENV:', process.env.NODE_ENV);
+    console.log('  MYSQL_HOST:', process.env.MYSQL_HOST);
+    console.log('  MYSQL_USER:', process.env.MYSQL_USER);
+    console.log('  MONGODB_URI:', process.env.MONGODB_URI);
+    
+    console.log('[E2E Bookings] Création du module de test...');
+    let moduleFixture: TestingModule;
+    try {
+      moduleFixture = await Test.createTestingModule({
+        imports: [AppModule],
+      }).compile();
+      console.log('[E2E Bookings] Module compilé avec succès');
+    } catch (error) {
+      console.error('[E2E Bookings] ERREUR lors de la compilation du module:', error);
+      throw error;
+    }
 
+    console.log('[E2E Bookings] Création de l\'application NestJS...');
     app = moduleFixture.createNestApplication();
     
     // Appliquer les mêmes middlewares que main.ts
@@ -31,7 +46,14 @@ describe('Bookings Module (e2e)', () => {
       transform: true,
     }));
 
-    await app.init();
+    console.log('[E2E Bookings] Initialisation de l\'application...');
+    try {
+      await app.init();
+      console.log('[E2E Bookings] Application initialisée avec succès');
+    } catch (error) {
+      console.error('[E2E Bookings] ERREUR lors de l\'initialisation:', error);
+      throw error;
+    }
 
     // Créer un utilisateur normal
     const { user } = await createTestUser(app, {
