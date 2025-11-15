@@ -83,7 +83,7 @@ describe('UsersService - Tests Unitaires', () => {
   // TESTS : Préparation de l'inscription
   // ==========================================
   describe('prepareRegistration()', () => {
-    it('✅ devrait créer un utilisateur temporaire et envoyer un email', async () => {
+    it('OK devrait créer un utilisateur temporaire et envoyer un email', async () => {
       // ARRANGE
       const createUserDto = {
         email: 'test@example.com',
@@ -116,7 +116,7 @@ describe('UsersService - Tests Unitaires', () => {
       expect(mockEmailService.sendRegistrationValidation).toHaveBeenCalled();
     });
 
-    it('❌ devrait lancer une erreur si l\'email existe déjà', async () => {
+    it('ERREUR devrait lancer une erreur si l\'email existe déjà', async () => {
       // ARRANGE
       const createUserDto = {
         email: 'existing@example.com',
@@ -145,7 +145,7 @@ describe('UsersService - Tests Unitaires', () => {
   // TESTS : Création de compte après validation
   // ==========================================
   describe('createAccountAfterEmailValidation()', () => {
-    it('✅ devrait créer un compte permanent après validation', async () => {
+    it('OK devrait créer un compte permanent après validation', async () => {
       // ARRANGE
       const validationToken = 'valid-token-123';
       const mockTempUser = {
@@ -183,7 +183,7 @@ describe('UsersService - Tests Unitaires', () => {
       expect(mockTemporaryUserModel.findByIdAndDelete).toHaveBeenCalledWith('temp123');
     });
 
-    it('❌ devrait lancer une erreur si le token est invalide', async () => {
+    it('ERREUR devrait lancer une erreur si le token est invalide', async () => {
       // ARRANGE
       mockTemporaryUserModel.findOne.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null), // Token introuvable
@@ -195,7 +195,7 @@ describe('UsersService - Tests Unitaires', () => {
         .toThrow(BadRequestException);
     });
 
-    it('❌ devrait lancer une erreur si le token est expiré', async () => {
+    it('ERREUR devrait lancer une erreur si le token est expiré', async () => {
       // ARRANGE
       const expiredTempUser = {
         _id: 'temp123',
@@ -223,7 +223,7 @@ describe('UsersService - Tests Unitaires', () => {
   // TESTS : Recherche d'utilisateur par email
   // ==========================================
   describe('findByEmail()', () => {
-    it('✅ devrait trouver un utilisateur par email', async () => {
+    it('OK devrait trouver un utilisateur par email', async () => {
       // ARRANGE
       const mockUser = {
         _id: 'user123',
@@ -244,7 +244,7 @@ describe('UsersService - Tests Unitaires', () => {
       expect(mockUserModel.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
     });
 
-    it('✅ devrait retourner null si l\'utilisateur n\'existe pas', async () => {
+    it('OK devrait retourner null si l\'utilisateur n\'existe pas', async () => {
       // ARRANGE
       mockUserModel.findOne.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),

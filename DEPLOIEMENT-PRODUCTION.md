@@ -52,38 +52,12 @@
 
 ## Étape 2 : Créer le service Render
 
-### 2.1 Push une première fois pour créer l'image Docker Hub
-
-Avant de créer le service Render, je dois push une première fois pour que GitHub Actions build et push l'image sur Docker Hub.
-
-1. **Commiter et push sur GitHub** :
-   ```powershell
-   git add .
-   git commit -m "feat: préparation déploiement production"
-   git push origin main
-   ```
-
-2. **Vérifier que GitHub Actions a réussi** :
-   - Dans GitHub : Onglet **"Actions"**
-   - Vérifier que le workflow **"CI/CD Pipeline"** est en cours
-   - Attendre que le job **"Build et Push Docker"** passe (vert)
-   - Si erreur : Vérifier que `DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` sont corrects
-
-3. **Vérifier que l'image existe sur Docker Hub** :
-   - Aller sur [hub.docker.com](https://hub.docker.com)
-   - Se connecter avec ton compte
-   - Chercher ton repository : `ton-username/lutea-backend`
-   - Vérifier que l'image `latest` existe
-   - Vérifier la date de dernière mise à jour (doit être récente)
-
-Une fois l'image créée sur Docker Hub, je peux créer le service Render.
-
-### 2.2 Créer un compte Render (si pas déjà fait)
+### 2.1 Créer un compte Render (si pas déjà fait)
 
 1. Aller sur [render.com](https://render.com)
 2. Créer un compte ou se connecter
 
-### 2.3 Créer un nouveau Web Service
+### 2.2 Créer un nouveau Web Service
 
 1. Dans Render : Cliquer sur **"New +"** → **"Web Service"**
 2. **Connect Repository** : Connecter ton repo GitHub (optionnel si tu utilises Docker Hub)
@@ -122,7 +96,7 @@ Une fois l'image créée sur Docker Hub, je peux créer le service Render.
 
 Note : Render utilisera l'image Docker Hub buildée par GitHub Actions. Plus rapide car Render n'a pas à builder l'image.
 
-### 2.4 Récupérer le Webhook URL
+### 2.3 Récupérer le Webhook URL
 
 1. Dans ton service Render : **Settings** → **Webhooks**
 2. Copier l'**"Auto-Deploy Webhook URL"** (commence par `https://api.render.com/deploy/srv-...`)

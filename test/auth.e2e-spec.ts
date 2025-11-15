@@ -67,7 +67,7 @@ describe('Auth Module (e2e)', () => {
       return request(app.getHttpServer())
         .post('/auth/register')
         .send({
-          email: 'invalid-email', // ❌ Format invalide
+          email: 'invalid-email', // ERREUR Format invalide
           password: 'Password123!',
           firstName: 'Test',
           lastName: 'User',
@@ -85,7 +85,7 @@ describe('Auth Module (e2e)', () => {
         .post('/auth/register')
         .send({
           email: `test-${Date.now()}@example.com`,
-          password: '123', // ❌ Trop court, pas de majuscule, etc.
+          password: '123', // ERREUR Trop court, pas de majuscule, etc.
           firstName: 'Test',
           lastName: 'User',
           phone: '0612345678',
@@ -103,7 +103,7 @@ describe('Auth Module (e2e)', () => {
         .send({
           email: `test-${Date.now()}@example.com`,
           password: 'Password123!',
-          // ❌ Manque firstName, lastName, etc.
+          // ERREUR Manque firstName, lastName, etc.
         })
         .expect(400);
     });
@@ -131,7 +131,7 @@ describe('Auth Module (e2e)', () => {
         .post('/auth/login')
         .send({
           email: 'test@example.com',
-          // ❌ Manque password
+          // ERREUR Manque password
         })
         .expect((response) => {
           // Peut retourner 400 (validation) ou 401 (authentification)
@@ -191,7 +191,7 @@ describe('Auth Module (e2e)', () => {
         .send({
           email: 'nonexistant@example.com',
         })
-        .expect(200) // ✅ Ne révèle pas si l'email existe
+        .expect(200) // OK Ne révèle pas si l'email existe
         .expect((res) => {
           expect(res.body.message).toContain('Si cet email existe');
         });

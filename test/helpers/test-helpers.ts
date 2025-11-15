@@ -303,16 +303,16 @@ export async function cleanupTestDatabase(app: INestApplication): Promise<void> 
       try {
         const collection = connection.collection(collectionName);
         await collection.deleteMany({});
-        console.log(`✅ Collection "${collectionName}" nettoyée`);
+        console.log(`OK: Collection "${collectionName}" nettoyee`);
       } catch {
         // Si la collection n'existe pas, continuer
-        console.log(`ℹ️ Collection "${collectionName}" non trouvée (probablement pas créée)`);
+        console.log(`INFO: Collection "${collectionName}" non trouvee (probablement pas creee)`);
       }
     }
     
-    console.log('✅ Base de données de test nettoyée avec succès');
+    console.log('OK: Base de donnees de test nettoyee avec succes');
   } catch (error) {
-    console.error('❌ Erreur lors du nettoyage de la base de données:', error);
+    console.error('ERREUR: Erreur lors du nettoyage de la base de donnees:', error);
     // Ne pas faire échouer les tests si le nettoyage échoue
   }
 }

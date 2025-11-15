@@ -74,7 +74,7 @@ describe('BookingsService - Tests Unitaires', () => {
   // TESTS : Calcul des places disponibles
   // ==========================================
   describe('getAvailablePlaces()', () => {
-    it('✅ devrait calculer correctement les places disponibles', async () => {
+    it('OK devrait calculer correctement les places disponibles', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString(); // Vrai ObjectId
       const date = new Date('2024-06-01');
@@ -108,7 +108,7 @@ describe('BookingsService - Tests Unitaires', () => {
       expect(mockBookingModel.aggregate).toHaveBeenCalled();
     });
 
-    it('❌ devrait retourner 0 si toutes les places sont prises', async () => {
+    it('ERREUR devrait retourner 0 si toutes les places sont prises', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString();
       const date = new Date('2024-06-01');
@@ -146,7 +146,7 @@ describe('BookingsService - Tests Unitaires', () => {
   // TESTS : Statistiques des réservations
   // ==========================================
   describe('getStats()', () => {
-    it('✅ devrait calculer les statistiques correctement', async () => {
+    it('OK devrait calculer les statistiques correctement', async () => {
       // ARRANGE
       const mockStats = {
         total: 100,
@@ -173,7 +173,7 @@ describe('BookingsService - Tests Unitaires', () => {
   // TESTS : Recherche de réservation par ID
   // ==========================================
   describe('findById()', () => {
-    it('✅ devrait trouver une réservation par ID', async () => {
+    it('OK devrait trouver une réservation par ID', async () => {
       // ARRANGE
       const bookingId = new Types.ObjectId().toString();
       const mockBooking = {
@@ -198,7 +198,7 @@ describe('BookingsService - Tests Unitaires', () => {
       expect(mockBookingModel.findById).toHaveBeenCalledWith(bookingId);
     });
 
-    it('❌ devrait lancer une exception si la réservation n\'existe pas', async () => {
+    it('ERREUR devrait lancer une exception si la réservation n\'existe pas', async () => {
       // ARRANGE
       const bookingId = new Types.ObjectId().toString();
 
@@ -216,7 +216,7 @@ describe('BookingsService - Tests Unitaires', () => {
   // TESTS : Annulation de réservation
   // ==========================================
   describe('cancelBooking()', () => {
-    it('✅ devrait annuler une réservation avec succès', async () => {
+    it('OK devrait annuler une réservation avec succès', async () => {
       // ARRANGE
       const bookingId = new Types.ObjectId().toString();
       const mockBooking = {
@@ -251,7 +251,7 @@ describe('BookingsService - Tests Unitaires', () => {
   // TESTS : Recherche des réservations utilisateur
   // ==========================================
   describe('findUserBookings()', () => {
-    it('✅ devrait retourner toutes les réservations d\'un utilisateur', async () => {
+    it('OK devrait retourner toutes les réservations d\'un utilisateur', async () => {
       // ARRANGE
       const userId = new Types.ObjectId().toString();
       const mockBookings = [

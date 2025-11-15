@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, DynamicModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
@@ -8,16 +8,38 @@ import { EventType } from './entities/event-type.entity';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 
-@Module({
-  imports: [
-    // Import des entités TypeORM pour MySQL
-    TypeOrmModule.forFeature([Session, UserEvent, EventType]),
-    AuthModule, // Pour utiliser les guards
-    UsersModule, // Pour AdminGuard qui a besoin de UsersService
-  ],
-  controllers: [AnalyticsController],
-  providers: [AnalyticsService],
-  exports: [AnalyticsService], // Export pour utilisation dans d'autres modules
-})
-export class AnalyticsModule {}
+@Module({})
+export class AnalyticsModule {
+  static forRoot(): DynamicModule {
+    // Vérifier si MySQL est configuré
+    const isMySQLConfigured = process.env.NODE_ENV !== 'test' && 
+                              process.env.MYSQL_HOST && 
+                              process.env.MYSQL_USER && 
+                              process.env.MYSQL_PASSWORD;
+
+    if (!isMySQLConfigured) {
+      // Retourner un module vide si MySQL n'est pas configuré
+      return {
+        module: AnalyticsModule,
+        imports: [],
+        controllers: [],
+        providers: [],
+        exports: [],
+      };
+    }
+
+    // Retourner le module complet avec TypeORM si configuré
+    return {
+      module: AnalyticsModule,
+      imports: [
+        TypeOrmModule.forFeature([Session, UserEvent, EventType]),
+        AuthModule,
+        UsersModule,
+      ],
+      controllers: [AnalyticsController],
+      providers: [AnalyticsService],
+      exports: [AnalyticsService],
+    };
+  }
+}
 

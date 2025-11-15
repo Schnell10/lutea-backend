@@ -101,10 +101,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     StripeModule,   // Intégration Stripe
     // AnalyticsModule : chargé seulement si MySQL est configuré
     // Si MySQL n'est pas disponible, l'app fonctionne normalement (sans analytics)
-    ...(process.env.NODE_ENV !== 'test' && 
-        process.env.MYSQL_HOST && 
-        process.env.MYSQL_USER && 
-        process.env.MYSQL_PASSWORD ? [AnalyticsModule] : []),
+    // Utilisation d'un module dynamique pour éviter les erreurs d'injection en mode test
+    AnalyticsModule.forRoot(),
   ],
   
   // Contrôleurs globaux (si nécessaire)

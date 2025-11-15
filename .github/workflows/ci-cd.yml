@@ -124,7 +124,7 @@ jobs:
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
 
   # ==========================================
-  # JOB 3: Déclencher déploiement Render (optionnel)
+  # JOB 3: Déclencher déploiement Render (seulement si Docker Hub OK)
   # ==========================================
   deploy-render:
     name: Déployer sur Render
@@ -137,27 +137,4 @@ jobs:
       - name: Trigger Render deployment
         run: |
           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || echo "Déploiement Render déclenché"
-
-  # ==========================================
-  # JOB 4: Déclencher déploiement Vercel (optionnel, pour le frontend)
-  # ==========================================
-  deploy-vercel:
-    name: Déployer sur Vercel
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    # Seulement sur main (production)
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-        continue-on-error: true
 

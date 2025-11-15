@@ -55,7 +55,7 @@ describe('Retreats Module (e2e)', () => {
   // TESTS : Récupérer toutes les retraites
   // ==========================================
   describe('GET /retreats/public', () => {
-    it('✅ devrait récupérer toutes les retraites publiques', async () => {
+    it('OK devrait récupérer toutes les retraites publiques', async () => {
       return request(app.getHttpServer())
         .get('/retreats/public')
         .expect(200)
@@ -64,7 +64,7 @@ describe('Retreats Module (e2e)', () => {
         });
     });
 
-    it('✅ devrait filtrer par dates disponibles', async () => {
+    it('OK devrait filtrer par dates disponibles', async () => {
       const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // +30 jours
 
       return request(app.getHttpServer())
@@ -100,7 +100,7 @@ describe('Retreats Module (e2e)', () => {
       retreatId = response.retreat._id;
     });
 
-    it('✅ devrait récupérer une retraite par ID', async () => {
+    it('OK devrait récupérer une retraite par ID', async () => {
       return request(app.getHttpServer())
         .get(`/retreats/public/${retreatId}`)
         .expect(200)
@@ -110,13 +110,13 @@ describe('Retreats Module (e2e)', () => {
         });
     });
 
-    it('❌ devrait retourner 404 pour un ID inexistant', async () => {
+    it('ERREUR devrait retourner 404 pour un ID inexistant', async () => {
       return request(app.getHttpServer())
         .get('/retreats/public/507f1f77bcf86cd799439011') // ID MongoDB valide mais inexistant
         .expect(404);
     });
 
-    it('❌ devrait retourner 400 pour un ID invalide', async () => {
+    it('ERREUR devrait retourner 400 pour un ID invalide', async () => {
       return request(app.getHttpServer())
         .get('/retreats/public/invalid-id')
         .expect(400);
@@ -127,7 +127,7 @@ describe('Retreats Module (e2e)', () => {
   // TESTS : Créer une retraite (Admin)
   // ==========================================
   describe('POST /retreats', () => {
-    it('✅ admin devrait créer une retraite valide', async () => {
+    it('OK admin devrait créer une retraite valide', async () => {
       const response = await createTestRetreat(app, adminCookies, {
         titreCard: 'Nouvelle Retraite Yoga',
         texteModal: 'Une retraite relaxante dans les Alpes',
@@ -148,7 +148,7 @@ describe('Retreats Module (e2e)', () => {
       expect(response.retreat.isActive).toBe(true); // Par défaut
     });
 
-    it('❌ utilisateur normal ne devrait pas créer de retraite', async () => {
+    it('ERREUR utilisateur normal ne devrait pas créer de retraite', async () => {
       const retreatData = {
         titreCard: 'Retraite Interdite',
         imageCard: 'https://example.com/image.jpg',
@@ -166,7 +166,7 @@ describe('Retreats Module (e2e)', () => {
         .expect(403); // Forbidden
     });
 
-    it('❌ devrait rejeter une retraite sans titreCard', async () => {
+    it('ERREUR devrait rejeter une retraite sans titreCard', async () => {
       const retreatData = {
         // titreCard manquant (requis)
         imageCard: 'https://example.com/image.jpg',
@@ -184,7 +184,7 @@ describe('Retreats Module (e2e)', () => {
         .expect(400);
     });
 
-    it('❌ devrait rejeter une retraite avec prix négatif', async () => {
+    it('ERREUR devrait rejeter une retraite avec prix négatif', async () => {
       const retreatData = {
         titreCard: 'Retraite Gratuite',
         imageCard: 'https://example.com/image.jpg',
@@ -225,7 +225,7 @@ describe('Retreats Module (e2e)', () => {
       retreatId = response.retreat._id;
     });
 
-    it('✅ admin devrait mettre à jour une retraite', async () => {
+    it('OK admin devrait mettre à jour une retraite', async () => {
       const updateData = {
         titreCard: 'Retraite Modifiée',
       };
@@ -240,7 +240,7 @@ describe('Retreats Module (e2e)', () => {
         });
     });
 
-    it('❌ utilisateur normal ne devrait pas modifier une retraite', async () => {
+    it('ERREUR utilisateur normal ne devrait pas modifier une retraite', async () => {
       const updateData = {
         titreCard: 'Tentative de modification',
       };
@@ -267,14 +267,14 @@ describe('Retreats Module (e2e)', () => {
       retreatId = response.retreat._id;
     });
 
-    it('✅ admin devrait supprimer une retraite', async () => {
+    it('OK admin devrait supprimer une retraite', async () => {
       return request(app.getHttpServer())
         .delete(`/retreats/admin/${retreatId}`)
         .set('Cookie', adminCookies)
         .expect(204); // DELETE peut retourner 204 No Content
     });
 
-    it('❌ utilisateur normal ne devrait pas supprimer une retraite', async () => {
+    it('ERREUR utilisateur normal ne devrait pas supprimer une retraite', async () => {
       return request(app.getHttpServer())
         .delete(`/retreats/admin/${retreatId}`)
         .set('Cookie', userCookies)
@@ -286,7 +286,7 @@ describe('Retreats Module (e2e)', () => {
   // TESTS : Recherche et filtres
   // ==========================================
   describe('GET /retreats/admin/search', () => {
-    it('✅ admin devrait rechercher par titre', async () => {
+    it('OK admin devrait rechercher par titre', async () => {
       // D'abord créer une retraite avec ce titre pour la recherche
       await createTestRetreat(app, adminCookies, {
         titreCard: 'Yoga Retreat Test',
@@ -315,7 +315,7 @@ describe('Retreats Module (e2e)', () => {
         });
     });
 
-    it('✅ admin devrait filtrer par prix max', async () => {
+    it('OK admin devrait filtrer par prix max', async () => {
       // D'abord créer une retraite avec un prix <= 500
       await createTestRetreat(app, adminCookies, {
         titreCard: 'Retraite Prix Test',
@@ -354,7 +354,7 @@ describe('Retreats Module (e2e)', () => {
         });
     });
 
-    it('❌ utilisateur normal ne devrait pas pouvoir rechercher', async () => {
+    it('ERREUR utilisateur normal ne devrait pas pouvoir rechercher', async () => {
       return request(app.getHttpServer())
         .get('/retreats/admin/search?titreCard=Yoga')
         .set('Cookie', userCookies)

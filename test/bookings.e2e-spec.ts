@@ -65,7 +65,7 @@ describe('Bookings Module (e2e)', () => {
   // TESTS : Créer une réservation
   // ==========================================
   describe('POST /bookings', () => {
-    it('✅ devrait créer une réservation avec tous les champs valides', async () => {
+    it('OK devrait créer une réservation avec tous les champs valides', async () => {
       const response = await createTestBooking(app, userCookies, testRetreatId, {
         nbPlaces: 2,
         notes: 'Végétarien',
@@ -77,7 +77,7 @@ describe('Bookings Module (e2e)', () => {
       expect(response.booking.statut).toBe('PENDING');
     });
 
-    it('✅ devrait créer une réservation sans authentification (booking anonyme)', async () => {
+    it('OK devrait créer une réservation sans authentification (booking anonyme)', async () => {
       // La route POST /bookings accepte les bookings anonymes (pas de @UseGuards)
       // Récupérer les dates exactes de la retraite
       const RetreatModel = app.get(getModelToken('Retreat'));
@@ -85,7 +85,7 @@ describe('Bookings Module (e2e)', () => {
       const retreatDate = retreat?.dates?.[0];
       
       if (!retreatDate) {
-        console.warn('⚠️ Test skip: retraite sans dates');
+        console.warn('ATTENTION Test skip: retraite sans dates');
         return;
       }
       
@@ -121,7 +121,7 @@ describe('Bookings Module (e2e)', () => {
       }
     });
 
-    it('❌ devrait rejeter une réservation avec retreatId invalide', async () => {
+    it('ERREUR devrait rejeter une réservation avec retreatId invalide', async () => {
       const bookingData = {
         retreatId: 'invalid-id', // ID invalide
         nbPlaces: 2,
@@ -147,7 +147,7 @@ describe('Bookings Module (e2e)', () => {
         });
     });
 
-    it('❌ devrait rejeter une réservation avec nbPlaces invalide', async () => {
+    it('ERREUR devrait rejeter une réservation avec nbPlaces invalide', async () => {
       // Utiliser createTestBooking mais avec un nbPlaces invalide
       const bookingData = {
         retreatId: testRetreatId,
@@ -176,7 +176,7 @@ describe('Bookings Module (e2e)', () => {
   // TESTS : Récupérer ses réservations
   // ==========================================
   describe('GET /bookings/my-bookings', () => {
-    it('✅ devrait récupérer toutes les réservations de l\'utilisateur', async () => {
+    it('OK devrait récupérer toutes les réservations de l\'utilisateur', async () => {
       // D'abord créer une réservation pour cet utilisateur
       await createTestBooking(app, userCookies, testRetreatId, {
         nbPlaces: 1,
@@ -193,7 +193,7 @@ describe('Bookings Module (e2e)', () => {
         });
     });
 
-    it('❌ devrait rejeter sans authentification', async () => {
+    it('ERREUR devrait rejeter sans authentification', async () => {
       return request(app.getHttpServer())
         .get('/bookings/my-bookings')
         .expect(401);
@@ -215,15 +215,15 @@ describe('Bookings Module (e2e)', () => {
         bookingId = response.booking._id;
       } catch (error) {
         // Si la création échoue, skip les tests qui dépendent de bookingId
-        console.error('⚠️ Échec création booking pour tests:', error);
+        console.error('ATTENTION Échec création booking pour tests:', error);
         bookingId = ''; // Valeur par défaut pour éviter les erreurs
       }
     });
 
-    it('✅ devrait récupérer une réservation par ID', async () => {
+    it('OK devrait récupérer une réservation par ID', async () => {
       // Si bookingId n'est pas défini, skip le test
       if (!bookingId) {
-        console.warn('⚠️ Test skip: bookingId non défini (création échouée)');
+        console.warn('ATTENTION Test skip: bookingId non défini (création échouée)');
         return;
       }
       
@@ -250,14 +250,14 @@ describe('Bookings Module (e2e)', () => {
         });
     });
 
-    it('❌ devrait rejeter avec un ID invalide', async () => {
+    it('ERREUR devrait rejeter avec un ID invalide', async () => {
       return request(app.getHttpServer())
         .get('/bookings/invalid-id')
         .set('Cookie', userCookies)
         .expect(400);
     });
 
-    it('❌ devrait rejeter sans authentification', async () => {
+    it('ERREUR devrait rejeter sans authentification', async () => {
       return request(app.getHttpServer())
         .get(`/bookings/${bookingId}`)
         .expect(401);
@@ -269,7 +269,7 @@ describe('Bookings Module (e2e)', () => {
   // TESTS : Admin - Gérer les réservations
   // ==========================================
   describe('GET /bookings/admin/all (Admin)', () => {
-    it('✅ admin devrait voir toutes les réservations', async () => {
+    it('OK admin devrait voir toutes les réservations', async () => {
       return request(app.getHttpServer())
         .get('/bookings/admin/all')
         .set('Cookie', adminCookies)
@@ -279,7 +279,7 @@ describe('Bookings Module (e2e)', () => {
         });
     });
 
-    it('❌ utilisateur normal ne devrait pas voir toutes les réservations', async () => {
+    it('ERREUR utilisateur normal ne devrait pas voir toutes les réservations', async () => {
       return request(app.getHttpServer())
         .get('/bookings/admin/all')
         .set('Cookie', userCookies)

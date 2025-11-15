@@ -64,7 +64,7 @@ describe('RetreatsService - Tests Unitaires', () => {
   // TESTS : Création de retraite
   // ==========================================
   describe('create()', () => {
-    it('✅ devrait créer une retraite avec succès', async () => {
+    it('OK devrait créer une retraite avec succès', async () => {
       // ARRANGE
       const createRetreatDto = {
         titreCard: 'Retraite Yoga',
@@ -96,7 +96,7 @@ describe('RetreatsService - Tests Unitaires', () => {
   // TESTS : Mise à jour de retraite
   // ==========================================
   describe('update()', () => {
-    it('✅ devrait mettre à jour une retraite avec succès', async () => {
+    it('OK devrait mettre à jour une retraite avec succès', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString();
       const updateData = {
@@ -126,7 +126,7 @@ describe('RetreatsService - Tests Unitaires', () => {
       );
     });
 
-    it('❌ devrait lancer une exception si la retraite n\'existe pas', async () => {
+    it('ERREUR devrait lancer une exception si la retraite n\'existe pas', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString();
 
@@ -140,7 +140,7 @@ describe('RetreatsService - Tests Unitaires', () => {
         .toThrow(NotFoundException);
     });
 
-    it('❌ devrait lancer une exception si l\'ID est invalide', async () => {
+    it('ERREUR devrait lancer une exception si l\'ID est invalide', async () => {
       // ARRANGE
       const invalidId = 'invalid-id';
 
@@ -155,7 +155,7 @@ describe('RetreatsService - Tests Unitaires', () => {
   // TESTS : Suppression de retraite
   // ==========================================
   describe('remove()', () => {
-    it('✅ devrait supprimer une retraite avec succès', async () => {
+    it('OK devrait supprimer une retraite avec succès', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString();
       const deletedRetreat = {
@@ -174,7 +174,7 @@ describe('RetreatsService - Tests Unitaires', () => {
       expect(mockRetreatModel.findByIdAndDelete).toHaveBeenCalledWith(retreatId);
     });
 
-    it('❌ devrait lancer une exception si la retraite n\'existe pas', async () => {
+    it('ERREUR devrait lancer une exception si la retraite n\'existe pas', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString();
 
@@ -193,7 +193,7 @@ describe('RetreatsService - Tests Unitaires', () => {
   // TESTS : Recherche de retraite par ID
   // ==========================================
   describe('findById()', () => {
-    it('✅ devrait trouver une retraite par ID', async () => {
+    it('OK devrait trouver une retraite par ID', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString();
       const mockRetreat = {
@@ -215,7 +215,7 @@ describe('RetreatsService - Tests Unitaires', () => {
       expect(mockRetreatModel.findById).toHaveBeenCalledWith(retreatId);
     });
 
-    it('❌ devrait lancer une exception si la retraite n\'existe pas', async () => {
+    it('ERREUR devrait lancer une exception si la retraite n\'existe pas', async () => {
       // ARRANGE
       const retreatId = new Types.ObjectId().toString();
 
@@ -229,7 +229,7 @@ describe('RetreatsService - Tests Unitaires', () => {
         .toThrow(NotFoundException);
     });
 
-    it('❌ devrait lancer une exception si l\'ID est invalide', async () => {
+    it('ERREUR devrait lancer une exception si l\'ID est invalide', async () => {
       // ARRANGE
       const invalidId = 'invalid-id';
 
@@ -244,7 +244,7 @@ describe('RetreatsService - Tests Unitaires', () => {
   // TESTS : Liste de toutes les retraites
   // ==========================================
   describe('findAll()', () => {
-    it('✅ devrait retourner toutes les retraites', async () => {
+    it('OK devrait retourner toutes les retraites', async () => {
       // ARRANGE
       const mockRetreats = [
         {
@@ -273,7 +273,7 @@ describe('RetreatsService - Tests Unitaires', () => {
       expect(mockRetreatModel.find).toHaveBeenCalled();
     });
 
-    it('✅ devrait retourner un tableau vide si aucune retraite', async () => {
+    it('OK devrait retourner un tableau vide si aucune retraite', async () => {
       // ARRANGE
       mockRetreatModel.find.mockReturnValue({
         sort: jest.fn().mockReturnThis(),

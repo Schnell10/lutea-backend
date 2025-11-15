@@ -67,7 +67,7 @@ describe('AuthService - Tests Unitaires', () => {
   // TESTS : validateUser()
   // ==========================================
   describe('validateUser()', () => {
-    it('✅ devrait retourner l\'utilisateur sans mot de passe si credentials valides', async () => {
+    it('OK devrait retourner l\'utilisateur sans mot de passe si credentials valides', async () => {
       // ARRANGE (Préparer)
       const mockUser = {
         _id: '123',
@@ -99,12 +99,12 @@ describe('AuthService - Tests Unitaires', () => {
       // ASSERT (Vérifier)
       expect(result).toBeDefined();
       expect(result.email).toBe('test@example.com');
-      expect(result.password).toBeUndefined(); // ✅ Mot de passe supprimé
+      expect(result.password).toBeUndefined(); // OK Mot de passe supprimé
       expect(usersService.resetFailedAttempts).toHaveBeenCalledWith('test@example.com');
       expect(usersService.updateLastLogin).toHaveBeenCalledWith('123');
     });
 
-    it('❌ devrait lancer UnauthorizedException si email n\'existe pas', async () => {
+    it('ERREUR devrait lancer UnauthorizedException si email n\'existe pas', async () => {
       // ARRANGE
       jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
       jest.spyOn(usersService, 'checkTemporaryUserStatus').mockResolvedValue({
@@ -117,7 +117,7 @@ describe('AuthService - Tests Unitaires', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('❌ devrait lancer UnauthorizedException si compte verrouillé', async () => {
+    it('ERREUR devrait lancer UnauthorizedException si compte verrouillé', async () => {
       // ARRANGE
       const mockUser = {
         _id: '123',
@@ -139,7 +139,7 @@ describe('AuthService - Tests Unitaires', () => {
       ).rejects.toThrow(/verrouillé/i);
     });
 
-    it('❌ devrait incrémenter les tentatives échouées si mot de passe incorrect', async () => {
+    it('ERREUR devrait incrémenter les tentatives échouées si mot de passe incorrect', async () => {
       // ARRANGE
       const mockUser = {
         _id: '123',
@@ -165,7 +165,7 @@ describe('AuthService - Tests Unitaires', () => {
       expect(usersService.incrementFailedAttempts).toHaveBeenCalledWith('test@example.com');
     });
 
-    it('🔐 devrait générer un code 2FA pour les admins', async () => {
+    it('SECURITE devrait générer un code 2FA pour les admins', async () => {
       // ARRANGE
       const mockAdmin = {
         _id: '123',
@@ -193,7 +193,7 @@ describe('AuthService - Tests Unitaires', () => {
       const result = await authService.validateUser('admin@example.com', 'correctPassword');
 
       // ASSERT
-      expect(result.requires2FA).toBe(true); // ✅ 2FA requise
+      expect(result.requires2FA).toBe(true); // OK 2FA requise
       expect(usersService.generateAndSendVerificationCode).toHaveBeenCalledWith('admin@example.com');
     });
   });
@@ -202,7 +202,7 @@ describe('AuthService - Tests Unitaires', () => {
   // TESTS : register()
   // ==========================================
   describe('register()', () => {
-    it('✅ devrait créer un utilisateur temporaire avec reCAPTCHA valide', async () => {
+    it('OK devrait créer un utilisateur temporaire avec reCAPTCHA valide', async () => {
       // ARRANGE
       const createUserDto = {
         email: 'new@example.com',
@@ -233,7 +233,7 @@ describe('AuthService - Tests Unitaires', () => {
       expect(usersService.prepareRegistration).toHaveBeenCalled();
     });
 
-    it('❌ devrait rejeter si reCAPTCHA invalide', async () => {
+    it('ERREUR devrait rejeter si reCAPTCHA invalide', async () => {
       // ARRANGE
       const createUserDto = {
         email: 'new@example.com',
@@ -248,14 +248,14 @@ describe('AuthService - Tests Unitaires', () => {
         token: 'invalid_recaptcha_token',
       };
 
-      jest.spyOn(emailService, 'verifyRecaptcha').mockResolvedValue(false); // ❌ reCAPTCHA invalide
+      jest.spyOn(emailService, 'verifyRecaptcha').mockResolvedValue(false); // ERREUR reCAPTCHA invalide
 
       // ACT & ASSERT
       await expect(authService.register(createUserDto)).rejects.toThrow(BadRequestException);
       await expect(authService.register(createUserDto)).rejects.toThrow(/reCAPTCHA/i);
     });
 
-    it('❌ devrait rejeter si email déjà existant', async () => {
+    it('ERREUR devrait rejeter si email déjà existant', async () => {
       // ARRANGE
       const createUserDto = {
         email: 'existing@example.com',
@@ -283,7 +283,7 @@ describe('AuthService - Tests Unitaires', () => {
   // TESTS : login()
   // ==========================================
   describe('login()', () => {
-    it('✅ devrait générer des tokens JWT valides', () => {
+    it('OK devrait générer des tokens JWT valides', () => {
       // ARRANGE
       const mockUser = {
         _id: '123',
@@ -310,7 +310,7 @@ describe('AuthService - Tests Unitaires', () => {
       expect(jwtService.sign).toHaveBeenCalledTimes(2);
     });
 
-    it('✅ devrait retourner les informations utilisateur correctes', () => {
+    it('OK devrait retourner les informations utilisateur correctes', () => {
       // ARRANGE
       const mockUser = {
         _id: '123',
@@ -342,7 +342,7 @@ describe('AuthService - Tests Unitaires', () => {
   // TESTS : refreshToken()
   // ==========================================
   describe('refreshToken()', () => {
-    it('✅ devrait générer un nouveau access token avec un refresh token valide', async () => {
+    it('OK devrait générer un nouveau access token avec un refresh token valide', async () => {
       // ARRANGE
       const mockUser = {
         _id: '123',
@@ -371,7 +371,7 @@ describe('AuthService - Tests Unitaires', () => {
       expect(jwtService.verify).toHaveBeenCalledWith('valid_refresh_token');
     });
 
-    it('❌ devrait rejeter un refresh token invalide', async () => {
+    it('ERREUR devrait rejeter un refresh token invalide', async () => {
       // ARRANGE
       jest.spyOn(jwtService, 'verify').mockImplementation(() => {
         throw new Error('Token invalide');
@@ -381,11 +381,11 @@ describe('AuthService - Tests Unitaires', () => {
       await expect(authService.refreshToken('invalid_token')).rejects.toThrow(UnauthorizedException);
     });
 
-    it('❌ devrait rejeter un refresh token sans type "refresh"', async () => {
+    it('ERREUR devrait rejeter un refresh token sans type "refresh"', async () => {
       // ARRANGE
       jest.spyOn(jwtService, 'verify').mockReturnValue({
         sub: '123',
-        type: 'access', // ❌ Mauvais type
+        type: 'access', // ERREUR Mauvais type
       });
 
       // ACT & ASSERT

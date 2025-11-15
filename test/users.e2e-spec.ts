@@ -63,7 +63,7 @@ describe('Users Module (e2e)', () => {
   // TESTS : Récupérer son profil
   // ==========================================
   describe('GET /users/profile', () => {
-    it('✅ devrait récupérer son propre profil', async () => {
+    it('OK devrait récupérer son propre profil', async () => {
       return request(app.getHttpServer())
         .get('/users/profile')
         .set('Cookie', userCookies)
@@ -75,7 +75,7 @@ describe('Users Module (e2e)', () => {
         });
     });
 
-    it('❌ devrait rejeter sans authentification', async () => {
+    it('ERREUR devrait rejeter sans authentification', async () => {
       return request(app.getHttpServer())
         .get('/users/profile')
         .expect(401);
@@ -86,7 +86,7 @@ describe('Users Module (e2e)', () => {
   // TESTS : Mettre à jour son profil
   // ==========================================
   describe('PUT /users/profile', () => {
-    it('✅ devrait mettre à jour son profil', async () => {
+    it('OK devrait mettre à jour son profil', async () => {
       const updateData = {
         firstName: 'Jean',
         lastName: 'Dupont',
@@ -105,7 +105,7 @@ describe('Users Module (e2e)', () => {
         });
     });
 
-    it('❌ ne devrait pas pouvoir changer son rôle', async () => {
+    it('ERREUR ne devrait pas pouvoir changer son rôle', async () => {
       // Récupérer le profil initial pour vérifier le rôle
       const initialProfile = await request(app.getHttpServer())
         .get('/users/profile')
@@ -134,7 +134,7 @@ describe('Users Module (e2e)', () => {
       expect(updatedProfile.body.role).not.toBe('admin');
     });
 
-    it('❌ devrait rejeter un email invalide', async () => {
+    it('ERREUR devrait rejeter un email invalide', async () => {
       // Créer un utilisateur séparé pour ce test
       const { user: testUser } = await createTestUser(app, {
         email: `email-test-${Date.now()}@example.com`,
@@ -188,7 +188,7 @@ describe('Users Module (e2e)', () => {
   // TESTS : Changer son mot de passe via PUT /users/profile
   // ==========================================
   describe('PUT /users/profile (changement mot de passe)', () => {
-    it('✅ devrait changer son mot de passe', async () => {
+    it('OK devrait changer son mot de passe', async () => {
       // Créer un utilisateur séparé pour ce test
       const { user: testUser } = await createTestUser(app, {
         email: `password-test-${Date.now()}@example.com`,
@@ -209,7 +209,7 @@ describe('Users Module (e2e)', () => {
         .expect(200);
     });
 
-    it('❌ devrait rejeter si ancien mot de passe incorrect', async () => {
+    it('ERREUR devrait rejeter si ancien mot de passe incorrect', async () => {
       // Créer un utilisateur séparé pour ce test
       const { user: testUser } = await createTestUser(app, {
         email: `password-wrong-${Date.now()}@example.com`,
@@ -255,7 +255,7 @@ describe('Users Module (e2e)', () => {
       ).toBe(true);
     });
 
-    it('❌ devrait rejeter si nouveau mot de passe trop faible', async () => {
+    it('ERREUR devrait rejeter si nouveau mot de passe trop faible', async () => {
       // Créer un utilisateur séparé pour ce test
       const { user: testUser } = await createTestUser(app, {
         email: `password-weak-${Date.now()}@example.com`,
@@ -310,7 +310,7 @@ describe('Users Module (e2e)', () => {
   // TESTS : Admin - Gérer les utilisateurs
   // ==========================================
   describe('GET /users (Admin)', () => {
-    it('✅ admin devrait voir tous les utilisateurs', async () => {
+    it('OK admin devrait voir tous les utilisateurs', async () => {
       return request(app.getHttpServer())
         .get('/users')
         .set('Cookie', adminCookies)
@@ -321,7 +321,7 @@ describe('Users Module (e2e)', () => {
         });
     });
 
-    it('❌ utilisateur normal ne devrait pas voir tous les utilisateurs', async () => {
+    it('ERREUR utilisateur normal ne devrait pas voir tous les utilisateurs', async () => {
       return request(app.getHttpServer())
         .get('/users')
         .set('Cookie', userCookies)
@@ -330,7 +330,7 @@ describe('Users Module (e2e)', () => {
   });
 
   describe('GET /users/:id (Admin)', () => {
-    it('✅ admin devrait voir un utilisateur par ID', async () => {
+    it('OK admin devrait voir un utilisateur par ID', async () => {
       // S'assurer que userId est bien défini
       if (!userId) {
         const profileResponse = await request(app.getHttpServer())
@@ -353,7 +353,7 @@ describe('Users Module (e2e)', () => {
         });
     });
 
-    it('❌ utilisateur normal ne devrait pas voir un autre utilisateur', async () => {
+    it('ERREUR utilisateur normal ne devrait pas voir un autre utilisateur', async () => {
       // Créer un autre utilisateur
       const { user: otherUser } = await createTestUser(app, {
         email: `other-${Date.now()}@example.com`,
@@ -368,7 +368,7 @@ describe('Users Module (e2e)', () => {
 
 
   describe('DELETE /users/:id (Admin)', () => {
-    it('✅ admin devrait supprimer un utilisateur', async () => {
+    it('OK admin devrait supprimer un utilisateur', async () => {
       // Créer un utilisateur à supprimer
       const { user: userToDelete } = await createTestUser(app, {
         email: `todelete-${Date.now()}@example.com`,
@@ -392,7 +392,7 @@ describe('Users Module (e2e)', () => {
         .expect(200);
     });
 
-    it('❌ utilisateur normal ne devrait pas supprimer un utilisateur', async () => {
+    it('ERREUR utilisateur normal ne devrait pas supprimer un utilisateur', async () => {
       const { user: userToDelete } = await createTestUser(app, {
         email: `protected-${Date.now()}@example.com`,
       });
@@ -408,7 +408,7 @@ describe('Users Module (e2e)', () => {
   // TESTS : Sécurité - Données sensibles
   // ==========================================
   describe('Sécurité - Données sensibles', () => {
-    it('✅ le mot de passe ne devrait jamais être exposé', async () => {
+    it('OK le mot de passe ne devrait jamais être exposé', async () => {
       const response = await request(app.getHttpServer())
         .get('/users/profile')
         .set('Cookie', userCookies)
@@ -418,7 +418,7 @@ describe('Users Module (e2e)', () => {
       expect(response.body).not.toHaveProperty('passwordHash');
     });
 
-    it('✅ les tentatives de connexion échouées ne devraient pas être exposées', async () => {
+    it('OK les tentatives de connexion échouées ne devraient pas être exposées', async () => {
       const response = await request(app.getHttpServer())
         .get('/users/profile')
         .set('Cookie', userCookies)
