@@ -34,15 +34,6 @@ import { StripeModule } from './modules/stripe/stripe.module';
 
 @Module({
   imports: [
-    // Logs de diagnostic pour comprendre le problème
-    ...(process.env.NODE_ENV === 'test' ? (() => {
-      console.log('[AppModule] Mode TEST détecté');
-      console.log('[AppModule] TypeOrmModule:', TypeOrmModule ? 'chargé' : 'null');
-      console.log('[AppModule] MYSQL_HOST:', process.env.MYSQL_HOST || 'non défini');
-      console.log('[AppModule] MYSQL_USER:', process.env.MYSQL_USER || 'non défini');
-      return [];
-    })() : []),
-    
     // Configuration des variables d'environnement
     ConfigModule.forRoot({
       isGlobal: true, // Disponible dans tous les modules
@@ -123,19 +114,9 @@ import { StripeModule } from './modules/stripe/stripe.module';
         process.env.MYSQL_USER && 
         process.env.MYSQL_PASSWORD ? [
       // En production/local, utiliser le vrai module avec TypeORM
-      (() => {
-        console.log('[AppModule] Chargement AnalyticsModule (production/local)');
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        return require('./modules/analytics/analytics.module').AnalyticsModule.forRoot();
-      })(),
-    ] : (() => {
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[AppModule] AnalyticsModule NON chargé (mode test)');
-      } else {
-        console.log('[AppModule] AnalyticsModule NON chargé (MySQL non configuré)');
-      }
-      return [];
-    })()),
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./modules/analytics/analytics.module').AnalyticsModule.forRoot(),
+    ] : []),
   ],
   
   // Contrôleurs globaux (si nécessaire)

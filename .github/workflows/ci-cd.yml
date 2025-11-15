@@ -56,8 +56,8 @@ jobs:
           JWT_REFRESH_SECRET=test_refresh_secret_for_testing_only
           
           # Stripe
-          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY_TEST }}
-          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET_TEST }}
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
           
           RESEND_API_KEY=re_test_fake_key
           

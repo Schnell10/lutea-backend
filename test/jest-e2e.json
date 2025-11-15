@@ -6,8 +6,5 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "setupFiles": ["<rootDir>/../test-env-setup.js"],
-  "verbose": true,
-  "detectOpenHandles": true,
-  "forceExit": true
+  "setupFiles": ["<rootDir>/../test-env-setup.js"]
 }
