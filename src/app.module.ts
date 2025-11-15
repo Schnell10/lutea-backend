@@ -103,13 +103,15 @@ import { StripeModule } from './modules/stripe/stripe.module';
     StripeModule,   // Intégration Stripe
     // AnalyticsModule : chargé seulement si MySQL est configuré ET pas en mode test
     // Si MySQL n'est pas disponible, l'app fonctionne normalement (sans analytics)
-    // En mode test, on ne charge PAS AnalyticsModule pour éviter les erreurs TypeORM
-    ...(process.env.NODE_ENV !== 'test' && 
-        process.env.MYSQL_HOST && 
+    // En mode test, on utilise un module factice qui ne charge pas TypeORM
+    ...(process.env.NODE_ENV === 'test' ? [
+      // En mode test, utiliser le module factice qui ne charge pas TypeORM
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./modules/analytics/analytics.module.test').AnalyticsModule.forRoot(),
+    ] : process.env.MYSQL_HOST && 
         process.env.MYSQL_USER && 
         process.env.MYSQL_PASSWORD ? [
-      // Import dynamique pour éviter que NestJS résolve les dépendances TypeORM en mode test
-      // On utilise require() car c'est la seule façon de rendre l'import vraiment conditionnel
+      // En production/local, utiliser le vrai module avec TypeORM
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('./modules/analytics/analytics.module').AnalyticsModule.forRoot(),
     ] : []),
