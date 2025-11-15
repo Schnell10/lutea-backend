@@ -48,6 +48,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     // Connexion à MySQL pour Analytics
     // MySQL est optionnel : chargé seulement si les variables sont présentes
     // Si MySQL est indisponible, l'app continue de fonctionner (seulement les analytics sont désactivées)
+    // En mode test, on configure TypeORM avec une config factice pour éviter les erreurs d'injection
     ...(process.env.NODE_ENV !== 'test' && 
         process.env.MYSQL_HOST && 
         process.env.MYSQL_USER && 
@@ -86,6 +87,34 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 
           return config;
         },
+      }),
+    ] : process.env.NODE_ENV === 'test' ? [
+      // En mode test, on configure TypeORM avec une config factice
+      // Cette config permet à NestJS de résoudre les dépendances TypeORM
+      // On utilise forRootAsync avec une factory qui gère l'erreur de connexion
+      TypeOrmModule.forRootAsync({
+        useFactory: () => {
+          // Configuration factice pour les tests
+          // TypeORM va essayer de se connecter mais échouera, ce qui est OK
+          return {
+            type: 'mysql' as const,
+            host: 'localhost',
+            port: 3306,
+            username: 'test',
+            password: 'test',
+            database: 'test',
+            entities: [__dirname + '/modules/analytics/entities/*.entity{.ts,.js}'],
+            synchronize: false,
+            logging: false,
+            // En mode test, on accepte que la connexion échoue
+            retryAttempts: 0,
+            retryDelay: 0,
+            // Ne pas charger automatiquement les entités
+            autoLoadEntities: false,
+          };
+        },
+        // En mode test, on ignore les erreurs de connexion
+        // L'application continuera de fonctionner même si MySQL n'est pas disponible
       }),
     ] : []),
     

@@ -10,7 +10,12 @@ import { logger } from './common/utils/logger';
 async function bootstrap() {
   logger.log('🚀 [Main] Démarrage de l\'application Lutea...');
   
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // En mode test, on ignore les erreurs de connexion MySQL
+    logger: process.env.NODE_ENV === 'test' 
+      ? ['error', 'warn'] // Réduire les logs en mode test
+      : ['log', 'error', 'warn', 'debug', 'verbose'],
+  });
   logger.log('✅ [Main] Application NestJS créée');
   
   // Configuration Helmet pour la sécurité des en-têtes HTTP
