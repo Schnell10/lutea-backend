@@ -21,6 +21,16 @@ export class AnalyticsService {
   // Créer une nouvelle session
   async createSession(createSessionDto: CreateSessionDto): Promise<Session> {
     try {
+      // Vérifier si la session existe déjà (évite les duplications)
+      const existingSession = await this.sessionRepository.findOne({
+        where: { session_id: createSessionDto.session_id }
+      });
+
+      if (existingSession) {
+        logger.log(`✅ [Analytics] Session existante trouvée: ${existingSession.session_id}`);
+        return existingSession;
+      }
+
       const session = this.sessionRepository.create({
         session_id: createSessionDto.session_id,
         started_at: new Date(createSessionDto.started_at),
@@ -33,6 +43,16 @@ export class AnalyticsService {
       logger.log(`✅ [Analytics] Session créée: ${savedSession.session_id}`);
       return savedSession;
     } catch (error) {
+      // Si c'est une erreur de duplication (ER_DUP_ENTRY), récupérer la session existante
+      if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
+        logger.warn(`⚠️ [Analytics] Session ${createSessionDto.session_id} existe déjà (race condition), récupération...`);
+        const existingSession = await this.sessionRepository.findOne({
+          where: { session_id: createSessionDto.session_id }
+        });
+        if (existingSession) {
+          return existingSession;
+        }
+      }
       logger.error('❌ [Analytics] Erreur création session:', error);
       throw error;
     }
@@ -132,10 +152,25 @@ export class AnalyticsService {
       if (!session) {
         // Créer la session si elle n'existe pas (cas où le frontend envoie un événement avant la session)
         logger.warn(`⚠️ [Analytics] Session ${createUserEventDto.session_id} non trouvée, création automatique`);
-        await this.createSession({
-          session_id: createUserEventDto.session_id,
-          started_at: createUserEventDto.event_ts || new Date().toISOString(),
-        });
+        try {
+          await this.createSession({
+            session_id: createUserEventDto.session_id,
+            started_at: createUserEventDto.event_ts || new Date().toISOString(),
+            browser: null,
+            device_type: null,
+            is_login: false,
+          });
+        } catch (error) {
+          // Si la création échoue (ex: duplication), vérifier à nouveau
+          const retrySession = await this.sessionRepository.findOne({
+            where: { session_id: createUserEventDto.session_id }
+          });
+          if (!retrySession) {
+            // Si la session n'existe toujours pas, re-lancer l'erreur
+            logger.error(`❌ [Analytics] Impossible de créer la session ${createUserEventDto.session_id}`);
+            throw error;
+          }
+        }
       }
 
       const userEvent = this.userEventRepository.create({
