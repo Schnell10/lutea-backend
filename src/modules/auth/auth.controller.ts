@@ -144,9 +144,20 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) res: Response) {
-    // Supprimer les cookies
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/' });
+    // IMPORTANT : Pour supprimer un cookie, il faut utiliser EXACTEMENT les mêmes options que lors de sa création
+    // En production, les cookies sont créés avec sameSite: 'none', secure: true et httpOnly: true
+    // Sans ces options, le cookie ne peut pas être supprimé en cross-domain
+    const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) : ('strict' as const);
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS en production (obligatoire avec sameSite: 'none')
+      sameSite: sameSiteValue, // Cross-domain en prod, strict en dev
+      path: '/', // Même path que lors de la création
+    };
+    
+    // Supprimer les cookies avec les mêmes options que lors de la création
+    res.clearCookie('access_token', cookieOptions);
+    res.clearCookie('refresh_token', cookieOptions);
     
     return { message: 'Déconnexion réussie. Cookies supprimés.' };
   }
