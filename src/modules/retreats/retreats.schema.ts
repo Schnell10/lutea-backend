@@ -49,7 +49,6 @@ export class Retreat {
   @Prop({ required: false })
   pdfUrl?: string;
 
-  // Champs globaux (optionnels, pour rétrocompatibilité)
   @Prop({ required: false, min: 0 })
   prix?: number;
 
@@ -92,16 +91,16 @@ export class Retreat {
   aVenir: boolean;
 
   @Prop({ default: true })
-  isActive: boolean; // Pour activer/désactiver manuellement
+  isActive: boolean; 
 }
 
 export const RetreatSchema = SchemaFactory.createForClass(Retreat);
 
 // Index pour optimiser les recherches et le filtrage
 RetreatSchema.index({ isActive: 1 });
-RetreatSchema.index({ aVenir: 1 }); // Pour filtrer les retraites "à venir"
-RetreatSchema.index({ 'dates.end': 1 }); // Pour filtrer les dates passées
-RetreatSchema.index({ 'dates.start': 1 }); // Pour trier par date
-RetreatSchema.index({ 'dates.prix': 1 }); // Pour le tri par prix
-RetreatSchema.index({ 'dates.places': 1 }); // Pour le tri par capacité
+RetreatSchema.index({ aVenir: 1 }); 
+RetreatSchema.index({ 'dates.end': 1 }); 
+RetreatSchema.index({ 'dates.start': 1 }); 
+RetreatSchema.index({ 'dates.prix': 1 }); 
+RetreatSchema.index({ 'dates.places': 1 }); 
 RetreatSchema.index({ createdAt: -1 });

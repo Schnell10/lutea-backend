@@ -2,23 +2,15 @@
 
 Module pour le tracking et l'analyse des événements utilisateurs dans MySQL.
 
-## Installation
-
-```bash
-npm install @nestjs/typeorm typeorm mysql2
-```
 
 ## Configuration
 
-Variables d'environnement dans `.env` :
-
-```env
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=mon_mot_de_passe
 MYSQL_DATABASE=lutea_analytics
-```
+
 
 En production (Render), j'utilise les valeurs Aiven avec `MYSQL_SSL=required`.
 
@@ -64,14 +56,14 @@ Le session_id est stocké dans sessionStorage (RGPD-friendly, disparaît à la f
 4. Je me connecte à Aiven via MySQL Workbench et j'exécute le script SQL
 
 5. Je configure les variables dans Render :
-   ```
+
    MYSQL_HOST=lutea-mysql-xxxxxx.c.aivencloud.com
    MYSQL_PORT=10091
    MYSQL_USER=avnadmin
    MYSQL_PASSWORD=le_password_aiven
    MYSQL_DATABASE=lutea_analytics
    MYSQL_SSL=required
-   ```
+
 
 ## Script SQL
 

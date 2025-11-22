@@ -24,12 +24,12 @@ export class BookingsService {
     private emailService: EmailService,
   ) {}
 
-  // Créer un nouveau booking (bloque les places immédiatement)
+  // Crée un nouveau booking (bloque les places immédiatement)
   async createBooking(userId: string | null, createBookingDto: CreateBookingDto): Promise<Booking> {
     const { retreatId, nbPlaces, participants, billingAddress, notes, statut } = createBookingDto;
     
-    // Conversion des dates string vers Date si nécessaire
-    const dateStart = typeof createBookingDto.dateStart === 'string' 
+    
+    const dateStart = typeof createBookingDto.dateStart === 'string' // Conversion des dates string vers Date
       ? new Date(createBookingDto.dateStart) 
       : createBookingDto.dateStart;
     const dateEnd = typeof createBookingDto.dateEnd === 'string' 
@@ -49,7 +49,6 @@ export class BookingsService {
     logger.log('🎯 Email principal:', participants[0]?.email);
     logger.log('🎯 ===========================================');
 
-    // Vérifier que la retraite existe
     const retreat = await this.retreatModel.findById(retreatId).exec();
     if (!retreat) {
       logger.error('❌ [BOOKING] Retraite non trouvée:', retreatId);
@@ -71,7 +70,7 @@ export class BookingsService {
     logger.log('🎯 Capacité max:', retreat.places, 'places');
     logger.log('🎯 ===========================================');
 
-    // Vérifier que l'utilisateur existe (seulement si connecté)
+    // Vérifie que l'utilisateur existe (seulement si connecté)
     if (userId) {
       const user = await this.userModel.findById(userId).exec();
       if (!user) {
@@ -86,7 +85,7 @@ export class BookingsService {
       logger.log('ℹ️ [BOOKING] Utilisateur non connecté - booking anonyme');
     }
 
-    // Vérifier qu'il y a assez de places disponibles
+    // Vérifie qu'il y a assez de places disponibles
     const placesDisponibles = await this.getAvailablePlaces(retreatId, dateStart);
     if (placesDisponibles < nbPlaces) {
       logger.error('❌ [BOOKING] Pas assez de places:', {
@@ -96,18 +95,17 @@ export class BookingsService {
       throw new ConflictException(`Seulement ${placesDisponibles} places disponibles`);
     }
 
-    // Trouver le bloc de dates sélectionné pour récupérer le prix
+    // Trouve le bloc de dates sélectionné pour récupérer le prix
     const selectedDateBlock = retreat.dates?.find(date => {
       if (!dateStart || !date.start) return false;
       const dateStartObj = new Date(date.start);
       const dateEndObj = new Date(date.end);
       const selectedDate = new Date(dateStart);
       
-      // Vérifier si la date sélectionnée est dans ce bloc de dates
+      // Vérifie si la date sélectionnée est dans ce bloc de dates
       return selectedDate >= dateStartObj && selectedDate <= dateEndObj;
     });
 
-    // Calculer le prix total avec le prix de la date sélectionnée
     const prixUnitaire = selectedDateBlock?.prix || retreat.prix || 0;
     const prixTotal = prixUnitaire * nbPlaces;
 
@@ -131,13 +129,12 @@ export class BookingsService {
     logger.log('🎯 Prix total:', prixTotal, '€');
     logger.log('🎯 ===========================================');
 
-    // Créer le booking (avec ou sans userId)
+    // Crée le booking (avec ou sans userId)
     const booking = new this.bookingModel({
       userId: userId ? new Types.ObjectId(userId) : null,
-      isGuest: !userId, // true si pas d'userId (client anonyme)
-      isStripeBooking: true, // true par défaut car créé via le tunnel Stripe
+      isGuest: !userId, 
+      isStripeBooking: true,
       retreatId: new Types.ObjectId(retreatId),
-      // Informations spécifiques de la retraite sélectionnée (viennent du tunnel de réservation)
       retreatName: createBookingDto.retreatName || retreat.titreCard,
       retreatAddress: createBookingDto.retreatAddress || selectedDateBlock?.adresseRdv || retreat.adresseRdv,
       retreatHeureArrivee: createBookingDto.retreatHeureArrivee,
@@ -336,9 +333,9 @@ export class BookingsService {
     return bookings;
   }
 
-  // Calculer les places disponibles pour une retraite
+  // Calcule les places disponibles pour une retraite
   async getAvailablePlaces(retreatId: string, date: Date): Promise<number> {
-    // Convertir la date en objet Date si ce n'est pas déjà le cas
+    // Converti la date en objet Date
     const dateObj = date instanceof Date ? date : new Date(date);
 
     if (!Types.ObjectId.isValid(retreatId)) {
@@ -352,7 +349,7 @@ export class BookingsService {
       throw new NotFoundException('Retraite non trouvée');
     }
 
-    // Trouver la date correspondante dans retreat.dates[]
+    // Trouve la date correspondante dans retreat.dates[]
     const selectedDate = retreat.dates?.find(d => 
       new Date(d.start).getTime() === dateObj.getTime()
     );
@@ -362,7 +359,7 @@ export class BookingsService {
       throw new NotFoundException('Date de retraite non trouvée');
     }
 
-    // Compter les places déjà réservées (bookings confirmés ET pending)
+    // Compte les places déjà réservées (bookings confirmés ET pending)
     const placesReservees = await this.bookingModel.aggregate([
       {
         $match: {

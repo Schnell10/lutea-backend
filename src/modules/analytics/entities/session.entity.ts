@@ -28,4 +28,3 @@ export class Session {
   @OneToMany(() => UserEvent, (userEvent) => userEvent.session)
   userEvents: UserEvent[];
 }
-

@@ -55,15 +55,6 @@ npm run start:dev
 
 ## Configuration
 
-Variables d'environnement dans `.env` :
-- MONGODB_URI
-- MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
-- JWT_SECRET, JWT_REFRESH_SECRET
-- STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
-- RESEND_API_KEY
-- FRONTEND_URL
-- NODE_ENV
-
 Fichiers de configuration :
 - `config/lutea.config.ts` : Données entreprise et emails
 - `config/security.config.ts` : Sécurité (JWT, 2FA, rate limiting, logging)
@@ -92,16 +83,6 @@ Fichiers de configuration :
 **Admin (JWT + AdminGuard)** : users (CRUD), retreats/admin (CRUD), bookings/admin (toutes), analytics/stats, analytics/event-types, analytics/clear-all
 
 Voir `SECURITY.md` pour la liste complète.
-
-## Scripts
-
-bash
-npm run start:dev      # Développement
-npm run build          # Build production
-npm run start:prod     # Production
-npm run lint           # Linting
-npm test               # Tests unitaires
-npm run test:e2e       # Tests E2E
 
 
 ## Documentation

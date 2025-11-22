@@ -23,7 +23,7 @@ export class EmailService {
         subject: 'Code de vérification 2FA - Lutea',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2c5530;">🔐 Code de vérification 2FA</h2>
+            <h2 style="color: #2c5530;">Code de vérification 2FA</h2>
             <p>Bonjour,</p>
             <p>Voici votre code de vérification pour finaliser votre connexion :</p>
             <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
@@ -91,15 +91,15 @@ export class EmailService {
         subject: 'Réinitialisation de votre mot de passe - Lutea',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">🔑 Réinitialisation de mot de passe</h2>
+            <h2 style="color: #333;">Réinitialisation de mot de passe</h2>
             <p>Vous avez demandé une réinitialisation de votre mot de passe sur Lutea.</p>
             <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${link}" style="background: #dc3545; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">🔐 Réinitialiser mon mot de passe</a>
+              <a href="${link}" style="background: #a6b39b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Réinitialiser mon mot de passe</a>
             </div>
             <p>Ou copiez ce lien dans votre navigateur :</p>
             <p style="background: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all;">${link}</p>
-            <p style="color: #666; font-size: 14px;">⚠️ Ce lien expire dans 1 heure.</p>
+            <p style="color: #666; font-size: 14px;">Ce lien expire dans 1 heure.</p>
             <p style="color: #666; font-size: 14px;">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #999; font-size: 12px;">Cet email a été envoyé automatiquement par Lutea</p>

@@ -128,66 +128,54 @@ export class AnalyticsService {
     }
   }
 
-  // Créer un événement utilisateur
+  // Crée un événement utilisateur
   async createUserEvent(createUserEventDto: CreateUserEventDto): Promise<UserEvent> {
-    try {
-      // Vérifier que le type d'événement existe
-      const eventType = await this.eventTypeRepository.findOne({
-        where: { code: createUserEventDto.event_type_code }
-      });
+    // Je vérifie que le type d'événement existe
+    const eventType = await this.eventTypeRepository.findOne({
+      where: { code: createUserEventDto.event_type_code }
+    });
 
-      if (!eventType) {
-        throw new Error(`Type d'événement ${createUserEventDto.event_type_code} non trouvé`);
-      }
+    if (!eventType) {
+      throw new Error(`Type d'événement ${createUserEventDto.event_type_code} non trouvé`);
+    }
 
-      if (!eventType.is_enabled) {
-        logger.warn(`⚠️ [Analytics] Type d'événement ${createUserEventDto.event_type_code} désactivé`);
-      }
+    // Je vérifie que la session existe
+    const session = await this.sessionRepository.findOne({
+      where: { session_id: createUserEventDto.session_id }
+    });
 
-      // Vérifier que la session existe
-      const session = await this.sessionRepository.findOne({
-        where: { session_id: createUserEventDto.session_id }
-      });
-
-      if (!session) {
-        // Créer la session si elle n'existe pas (cas où le frontend envoie un événement avant la session)
-        logger.warn(`⚠️ [Analytics] Session ${createUserEventDto.session_id} non trouvée, création automatique`);
-        try {
-          await this.createSession({
-            session_id: createUserEventDto.session_id,
-            started_at: createUserEventDto.event_ts || new Date().toISOString(),
-            browser: null,
-            device_type: null,
-            is_login: false,
-          });
-        } catch (error) {
-          // Si la création échoue (ex: duplication), vérifier à nouveau
-          const retrySession = await this.sessionRepository.findOne({
-            where: { session_id: createUserEventDto.session_id }
-          });
-          if (!retrySession) {
-            // Si la session n'existe toujours pas, re-lancer l'erreur
-            logger.error(`❌ [Analytics] Impossible de créer la session ${createUserEventDto.session_id}`);
-            throw error;
-          }
+    if (!session) {
+      // Si elle n'existe pas, je la crée automatiquement (cas où le frontend envoie un événement avant la session)
+      try {
+        await this.createSession({
+          session_id: createUserEventDto.session_id,
+          started_at: createUserEventDto.event_ts || new Date().toISOString(),
+          browser: null,
+          device_type: null,
+          is_login: false,
+        });
+      } catch (error) {
+        // Si la création échoue (ex: duplication), je vérifie à nouveau
+        const retrySession = await this.sessionRepository.findOne({
+          where: { session_id: createUserEventDto.session_id }
+        });
+        if (!retrySession) {
+          throw error;
         }
       }
-
-      const userEvent = this.userEventRepository.create({
-        session_id_Session: createUserEventDto.session_id,
-        code_EventType: createUserEventDto.event_type_code,
-        event_ts: createUserEventDto.event_ts ? new Date(createUserEventDto.event_ts) : new Date(),
-        page_path: createUserEventDto.page_path || null,
-        event_data: createUserEventDto.event_data || null,
-      });
-
-      const savedEvent = await this.userEventRepository.save(userEvent);
-      logger.log(`✅ [Analytics] Événement: ${createUserEventDto.event_type_code}`);
-      return savedEvent;
-    } catch (error) {
-      logger.error('❌ [Analytics] Erreur création événement:', error);
-      throw error;
     }
+
+    // Je crée l'événement avec toutes les données fournies
+    const userEvent = this.userEventRepository.create({
+      session_id_Session: createUserEventDto.session_id,
+      code_EventType: createUserEventDto.event_type_code,
+      event_ts: createUserEventDto.event_ts ? new Date(createUserEventDto.event_ts) : new Date(),
+      page_path: createUserEventDto.page_path || null,
+      event_data: createUserEventDto.event_data || null,
+    });
+
+    const savedEvent = await this.userEventRepository.save(userEvent);
+    return savedEvent;
   }
 
   // Récupérer les statistiques complètes
@@ -359,7 +347,6 @@ export class AnalyticsService {
 
       // Compter les sessions par étape atteinte
       const sessionsByStep: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      const exitByStep: Record<number, number> = {};
 
       sessionAnalyses.forEach(analysis => {
         // Toutes les sessions qui ont commencé ont au moins atteint l'étape 1
@@ -369,12 +356,19 @@ export class AnalyticsService {
         for (let step = 2; step <= analysis.lastStep; step++) {
           sessionsByStep[step]++;
         }
-        
-        // Compter les sorties (explicites ou implicites)
-        if (analysis.exitStep !== undefined) {
-          exitByStep[analysis.exitStep] = (exitByStep[analysis.exitStep] || 0) + 1;
-        }
       });
+
+      // Calculer les sorties de manière logique : différence entre sessions par étape
+      // Sorties à l'étape N = sessions[N] - sessions[N+1]
+      const exitByStep: Record<number, number> = {};
+      for (let step = 1; step <= 5; step++) {
+        const sessionsAtStep = sessionsByStep[step] || 0;
+        const sessionsAtNextStep = step < 5 ? (sessionsByStep[step + 1] || 0) : 0;
+        const exits = sessionsAtStep - sessionsAtNextStep;
+        if (exits > 0) {
+          exitByStep[step] = exits;
+        }
+      }
 
       const totalStarted = sessionIds.length;
       const reachedStep5 = sessionsByStep[5] || 0; // Nombre de sessions arrivées à l'étape 5

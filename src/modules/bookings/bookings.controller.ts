@@ -110,7 +110,7 @@ export class BookingsController {
     logger.log('🔐 [AUTH] Tous les headers:', req.headers);
     logger.log('🔐 [AUTH] ================================================');
     
-    // Extraire l'utilisateur depuis les cookies (optionnel)
+    // Extrait l'utilisateur depuis les cookies (optionnel)
     const { userId, isGuest } = this.extractUserFromCookies(req);
     
     logger.log('📝 [BOOKING] Création d\'un booking...', {
@@ -122,7 +122,6 @@ export class BookingsController {
       statut: createBookingDto.statut
     });
 
-    // Utiliser la méthode normale (isStripeBooking = true)
     return this.bookingsService.createBooking(userId, createBookingDto);
   }
 
