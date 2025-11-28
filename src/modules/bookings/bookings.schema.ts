@@ -138,3 +138,38 @@ BookingSchema.index({
   dateStart: 1 
 });
 
+{
+  userId: ObjectId,                  
+  isGuest: { type: Boolean, default: false },
+  isStripeBooking: { type: Boolean, default: true }, 
+  retreatId: ObjectId,                
+  retreatName: String,           
+  dateStart: Date,               
+  dateEnd: Date,                      
+  nbPlaces: { type: Number, min: 1 },  
+  prixTotal: { type: Number, min: 0 }, 
+  participants: [{           
+    prenom: String,
+    nom: String,
+    email: String}],
+  billingAddress: {   
+    address: String,
+    city: String,
+    postalCode: String,
+    country: String,
+    phone: String},
+  statut: {
+    type: String,
+    enum: ['PENDING', 'CONFIRMED', 'CANCELLED'],
+    default: 'PENDING' },
+  statutPaiement: {
+    type: String,
+    enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'],
+    default: 'PENDING' },
+  stripePaymentIntentId: String,
+  notes: String,                     
+  annulationRaison: String,         
+  annulationDate: Date,             
+  timestamps: true             
+}
+
