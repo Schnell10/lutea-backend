@@ -14,7 +14,6 @@ import { AnalyticsService } from './analytics.service';
 import { CreateSessionDto, UpdateSessionDto, CreateUserEventDto } from './dto/analytics.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
-import { logger } from '../../common/utils/logger';
 
 @Controller('analytics')
 export class AnalyticsController {

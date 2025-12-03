@@ -32,7 +32,8 @@ export class Booking {
   @Prop({ type: Types.ObjectId, ref: 'Retreat', required: true })
   retreatId: Types.ObjectId;
 
-  // Informations de la retraite au moment de la réservation (pour éviter les problèmes si la retraite est supprimée)
+  // Informations de la retraite au moment de la réservation
+  // (pour éviter les problèmes si la retraite est supprimée)
   @Prop({ required: true })
   retreatName: string;
 
@@ -137,39 +138,4 @@ BookingSchema.index({
   retreatId: 1, 
   dateStart: 1 
 });
-
-{
-  userId: ObjectId,                  
-  isGuest: { type: Boolean, default: false },
-  isStripeBooking: { type: Boolean, default: true }, 
-  retreatId: ObjectId,                
-  retreatName: String,           
-  dateStart: Date,               
-  dateEnd: Date,                      
-  nbPlaces: { type: Number, min: 1 },  
-  prixTotal: { type: Number, min: 0 }, 
-  participants: [{           
-    prenom: String,
-    nom: String,
-    email: String}],
-  billingAddress: {   
-    address: String,
-    city: String,
-    postalCode: String,
-    country: String,
-    phone: String},
-  statut: {
-    type: String,
-    enum: ['PENDING', 'CONFIRMED', 'CANCELLED'],
-    default: 'PENDING' },
-  statutPaiement: {
-    type: String,
-    enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'],
-    default: 'PENDING' },
-  stripePaymentIntentId: String,
-  notes: String,                     
-  annulationRaison: String,         
-  annulationDate: Date,             
-  timestamps: true             
-}
 
