@@ -6,16 +6,16 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Je copie les fichiers de dépendances
 COPY package*.json ./
 
-# Installer les dépendances (production + dev pour build)
+# J'installe les dépendances (production + dev pour build)
 RUN npm ci
 
-# Copier le code source
+# Je copie le code source
 COPY . .
 
-# Build de l'application NestJS
+# Je build l'application NestJS
 RUN npm run build
 
 # Stage 2: Production
@@ -23,24 +23,24 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Créer un utilisateur non-root pour la sécurité
+# Je crée un utilisateur non-root pour la sécurité
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Copier les fichiers de dépendances
+# Je copie les fichiers de dépendances
 COPY package*.json ./
 
-# Installer uniquement les dépendances de production
+# J'installe uniquement les dépendances de production
 RUN npm ci --only=production && \
     npm cache clean --force
 
-# Copier le code depuis le stage builder
+# Je copie le code depuis le stage builder
 COPY --from=builder --chown=nestjs:nodejs /app ./
 
-# Passer à l'utilisateur non-root
+# Je passe à l'utilisateur non-root
 USER nestjs
 
-# Exposer le port de l'application
+# J'expose le port de l'application
 EXPOSE 3002
 
 # Variables d'environnement par défaut (seront surchargées par Render)

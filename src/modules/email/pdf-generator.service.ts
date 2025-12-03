@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { luteaConfig } from '../../config/lutea.config';
 
-// Couleurs Lutea - style propre et moderne
+// Je définis les couleurs Lutea avec un style propre et moderne
 const COLORS = {
   primary: rgb(0.506, 0.627, 0.522), // #81a085
   title: rgb(0.306, 0.388, 0.318), // #4e6351
@@ -16,15 +16,13 @@ const COLORS = {
 @Injectable()
 export class PdfGeneratorService {
   async generateConfirmationPdf(bookingData: any): Promise<Buffer> {
-    // Créer un nouveau PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4
 
-    // Charger les polices
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Titre principal en haut - style propre
+    // Titre principal
     page.drawText('CONFIRMATION DE RÉSERVATION', {
       x: 50,
       y: 780,
@@ -51,7 +49,7 @@ export class PdfGeneratorService {
       color: COLORS.primary,
     });
 
-    // Section prestation - style épuré
+    // Section prestation
     page.drawText('PRESTATION', {
       x: 50,
       y: 700,
@@ -68,7 +66,7 @@ export class PdfGeneratorService {
       color: COLORS.text,
     });
 
-    // Dates et horaires - utiliser les dates spécifiques du booking
+    // Dates et horaires (dates spécifiques du booking)
     page.drawText('DATES ET HORAIRES', {
       x: 50,
       y: 640,
@@ -88,7 +86,7 @@ export class PdfGeneratorService {
       color: COLORS.text,
     });
 
-    // Afficher les heures si disponibles
+    // Heures si disponibles
     if (bookingData.retreatHeureArrivee && bookingData.retreatHeureDepart) {
       page.drawText(`Rendez-vous: ${bookingData.retreatHeureArrivee} - Départ: ${bookingData.retreatHeureDepart}`, {
         x: 50,
@@ -116,7 +114,7 @@ export class PdfGeneratorService {
       color: COLORS.text,
     });
 
-    // Prix total - style normal comme le texte
+    // Prix total
     page.drawText('PRIX TOTAL TTC', {
       x: 50,
       y: 500,
@@ -177,7 +175,7 @@ export class PdfGeneratorService {
     });
     
 
-    // Description des prestations incluses
+    // Prestations incluses
     page.drawText('PRESTATIONS INCLUSES', {
       x: 50,
       y: 255,
@@ -192,7 +190,7 @@ export class PdfGeneratorService {
       size: 12,
       font: font,
       color: COLORS.text,
-      maxWidth: 495, // Largeur maximale pour forcer le retour à la ligne naturel
+      maxWidth: 495, // Largeur maximale pour forcer le retour à la ligne
     });
 
     // Ligne de séparation avant les mentions légales
@@ -211,7 +209,7 @@ export class PdfGeneratorService {
       color: COLORS.title,
     });
 
-    // Mentions légales - style épuré sous LUTEA
+    // Mentions légales
     page.drawText(`Entreprise: ${luteaConfig.company.name}`, {
       x: 50,
       y: 115,
@@ -236,7 +234,6 @@ export class PdfGeneratorService {
       color: COLORS.text,
     });
 
-    // Générer le PDF
     const pdfBytes = await pdfDoc.save();
     return Buffer.from(pdfBytes);
   }

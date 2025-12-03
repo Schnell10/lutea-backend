@@ -12,15 +12,13 @@ describe('AuthService - Tests Unitaires', () => {
   let jwtService: JwtService;
   let emailService: EmailService;
 
-  // ==========================================
-  // SETUP : Mock des dépendances
-  // ==========================================
+  // Je configure les mocks des dépendances avant chaque test
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         {
-          // 🎭 MOCK de UsersService (pas la vraie classe !)
+          // Je mock UsersService (pas la vraie classe)
           provide: UsersService,
           useValue: {
             findByEmail: jest.fn(),
@@ -39,7 +37,7 @@ describe('AuthService - Tests Unitaires', () => {
           },
         },
         {
-          // 🎭 MOCK de JwtService
+          // Je mock JwtService
           provide: JwtService,
           useValue: {
             sign: jest.fn(),
@@ -47,7 +45,7 @@ describe('AuthService - Tests Unitaires', () => {
           },
         },
         {
-          // 🎭 MOCK de EmailService
+          // Je mock EmailService
           provide: EmailService,
           useValue: {
             verifyRecaptcha: jest.fn(),
@@ -63,12 +61,9 @@ describe('AuthService - Tests Unitaires', () => {
     emailService = module.get<EmailService>(EmailService);
   });
 
-  // ==========================================
-  // TESTS : validateUser()
-  // ==========================================
   describe('validateUser()', () => {
     it('OK devrait retourner l\'utilisateur sans mot de passe si credentials valides', async () => {
-      // ARRANGE (Préparer)
+      // ARRANGE : Je prépare les données de test
       const mockUser = {
         _id: '123',
         email: 'test@example.com',
@@ -86,20 +81,20 @@ describe('AuthService - Tests Unitaires', () => {
         }),
       };
 
-      // Configurer les mocks pour retourner les bonnes valeurs
+      // Je configure les mocks pour retourner les bonnes valeurs
       jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser as any);
       jest.spyOn(usersService, 'isAccountLocked').mockReturnValue(false);
       jest.spyOn(usersService, 'validatePassword').mockResolvedValue(true);
       jest.spyOn(usersService, 'resetFailedAttempts').mockResolvedValue(undefined);
       jest.spyOn(usersService, 'updateLastLogin').mockResolvedValue(undefined);
 
-      // ACT (Agir)
+      // ACT : J'exécute la méthode à tester
       const result = await authService.validateUser('test@example.com', 'correctPassword');
 
-      // ASSERT (Vérifier)
+      // ASSERT : Je vérifie les résultats
       expect(result).toBeDefined();
       expect(result.email).toBe('test@example.com');
-      expect(result.password).toBeUndefined(); // OK Mot de passe supprimé
+      expect(result.password).toBeUndefined(); // Mot de passe supprimé
       expect(usersService.resetFailedAttempts).toHaveBeenCalledWith('test@example.com');
       expect(usersService.updateLastLogin).toHaveBeenCalledWith('123');
     });
@@ -133,7 +128,7 @@ describe('AuthService - Tests Unitaires', () => {
         authService.validateUser('test@example.com', 'password123')
       ).rejects.toThrow(UnauthorizedException);
       
-      // Vérifier que le message contient "verrouillé"
+      // Je vérifie que le message contient "verrouillé"
       await expect(
         authService.validateUser('test@example.com', 'password123')
       ).rejects.toThrow(/verrouillé/i);
@@ -161,7 +156,7 @@ describe('AuthService - Tests Unitaires', () => {
         authService.validateUser('test@example.com', 'wrongPassword')
       ).rejects.toThrow(UnauthorizedException);
 
-      // Vérifier que incrementFailedAttempts a été appelé
+      // Je vérifie que incrementFailedAttempts a été appelé
       expect(usersService.incrementFailedAttempts).toHaveBeenCalledWith('test@example.com');
     });
 
@@ -171,7 +166,7 @@ describe('AuthService - Tests Unitaires', () => {
         _id: '123',
         email: 'admin@example.com',
         password: 'hashedPassword',
-        role: 'admin', // ← ADMIN
+        role: 'admin', // Admin
         toObject: jest.fn().mockReturnValue({
           _id: '123',
           email: 'admin@example.com',
@@ -193,14 +188,11 @@ describe('AuthService - Tests Unitaires', () => {
       const result = await authService.validateUser('admin@example.com', 'correctPassword');
 
       // ASSERT
-      expect(result.requires2FA).toBe(true); // OK 2FA requise
+      expect(result.requires2FA).toBe(true); // 2FA requise
       expect(usersService.generateAndSendVerificationCode).toHaveBeenCalledWith('admin@example.com');
     });
   });
 
-  // ==========================================
-  // TESTS : register()
-  // ==========================================
   describe('register()', () => {
     it('OK devrait créer un utilisateur temporaire avec reCAPTCHA valide', async () => {
       // ARRANGE
@@ -248,7 +240,7 @@ describe('AuthService - Tests Unitaires', () => {
         token: 'invalid_recaptcha_token',
       };
 
-      jest.spyOn(emailService, 'verifyRecaptcha').mockResolvedValue(false); // ERREUR reCAPTCHA invalide
+      jest.spyOn(emailService, 'verifyRecaptcha').mockResolvedValue(false); // reCAPTCHA invalide
 
       // ACT & ASSERT
       await expect(authService.register(createUserDto)).rejects.toThrow(BadRequestException);
@@ -279,9 +271,6 @@ describe('AuthService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : login()
-  // ==========================================
   describe('login()', () => {
     it('OK devrait générer des tokens JWT valides', () => {
       // ARRANGE
@@ -338,9 +327,6 @@ describe('AuthService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : refreshToken()
-  // ==========================================
   describe('refreshToken()', () => {
     it('OK devrait générer un nouveau access token avec un refresh token valide', async () => {
       // ARRANGE
@@ -385,7 +371,7 @@ describe('AuthService - Tests Unitaires', () => {
       // ARRANGE
       jest.spyOn(jwtService, 'verify').mockReturnValue({
         sub: '123',
-        type: 'access', // ERREUR Mauvais type
+        type: 'access', // Mauvais type
       });
 
       // ACT & ASSERT

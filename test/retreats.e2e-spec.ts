@@ -10,9 +10,7 @@ describe('Retreats Module (e2e)', () => {
   let adminCookies: string;
   let userCookies: string;
 
-  // ==========================================
-  // SETUP
-  // ==========================================
+  // Setup avant tous les tests
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -20,7 +18,7 @@ describe('Retreats Module (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     
-    // Appliquer les mêmes middlewares que main.ts
+    // J'applique les mêmes middlewares que main.ts
     app.use(cookieParser());
     
     app.useGlobalPipes(new ValidationPipe({
@@ -31,7 +29,7 @@ describe('Retreats Module (e2e)', () => {
 
     await app.init();
 
-    // Créer un admin
+    // Je crée un admin
     const { user: admin } = await createTestUser(app, {
       email: `admin-${Date.now()}@example.com`,
       role: 'admin',
@@ -39,7 +37,7 @@ describe('Retreats Module (e2e)', () => {
     const adminLoginResponse = await loginTestUser(app, admin.email, admin.password);
     adminCookies = adminLoginResponse.cookies;
 
-    // Créer un utilisateur normal
+    // Je crée un utilisateur normal
     const { user } = await createTestUser(app, {
       email: `user-${Date.now()}@example.com`,
     });
@@ -51,9 +49,7 @@ describe('Retreats Module (e2e)', () => {
     await app.close();
   });
 
-  // ==========================================
-  // TESTS : Récupérer toutes les retraites
-  // ==========================================
+  // Tests de récupération des retraites publiques
   describe('GET /retreats/public', () => {
     it('OK devrait récupérer toutes les retraites publiques', async () => {
       return request(app.getHttpServer())
@@ -76,14 +72,12 @@ describe('Retreats Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Récupérer une retraite par ID
-  // ==========================================
+  // Tests de récupération d'une retraite par ID
   describe('GET /retreats/:id', () => {
     let retreatId: string;
 
     beforeAll(async () => {
-      // Créer une retraite de test
+      // Je crée une retraite de test
       const response = await createTestRetreat(app, adminCookies, {
         titreCard: 'Retraite Test Details',
         texteModal: 'Description de test',
@@ -123,9 +117,7 @@ describe('Retreats Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Créer une retraite (Admin)
-  // ==========================================
+  // Tests de création de retraite (admin)
   describe('POST /retreats', () => {
     it('OK admin devrait créer une retraite valide', async () => {
       const response = await createTestRetreat(app, adminCookies, {
@@ -145,7 +137,7 @@ describe('Retreats Module (e2e)', () => {
       expect(response.retreat).toHaveProperty('_id');
       expect(response.retreat.titreCard).toBe('Nouvelle Retraite Yoga');
       expect(response.retreat.dates?.[0]?.prix).toBe(750);
-      expect(response.retreat.isActive).toBe(true); // Par défaut
+      expect(response.retreat.isActive).toBe(true); // Par défaut, une retraite est active
     });
 
     it('ERREUR utilisateur normal ne devrait pas créer de retraite', async () => {
@@ -168,7 +160,7 @@ describe('Retreats Module (e2e)', () => {
 
     it('ERREUR devrait rejeter une retraite sans titreCard', async () => {
       const retreatData = {
-        // titreCard manquant (requis)
+        // titreCard manquant (champ requis)
         imageCard: 'https://example.com/image.jpg',
         altImageCard: 'Image test',
         imageModal: ['https://example.com/image1.jpg'],
@@ -192,7 +184,7 @@ describe('Retreats Module (e2e)', () => {
         imageModal: ['https://example.com/image1.jpg'],
         altImageModal: ['Image modal test'],
         texteModal: 'Description',
-        prix: -100, // Prix négatif
+        prix: -100, // Prix négatif (invalide)
       };
 
       return request(app.getHttpServer())
@@ -203,9 +195,7 @@ describe('Retreats Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Mettre à jour une retraite (Admin)
-  // ==========================================
+  // Tests de mise à jour de retraite (admin)
   describe('PATCH /retreats/:id', () => {
     let retreatId: string;
 
@@ -253,13 +243,12 @@ describe('Retreats Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Supprimer une retraite (Admin)
-  // ==========================================
+  // Tests de suppression de retraite (admin)
   describe('DELETE /retreats/:id', () => {
     let retreatId: string;
 
     beforeEach(async () => {
+      // Je crée une retraite avant chaque test de suppression
       const response = await createTestRetreat(app, adminCookies, {
         titreCard: 'Retraite à Supprimer',
         prix: 300,
@@ -271,7 +260,7 @@ describe('Retreats Module (e2e)', () => {
       return request(app.getHttpServer())
         .delete(`/retreats/admin/${retreatId}`)
         .set('Cookie', adminCookies)
-        .expect(204); // DELETE peut retourner 204 No Content
+        .expect(204); // DELETE retourne 204 No Content
     });
 
     it('ERREUR utilisateur normal ne devrait pas supprimer une retraite', async () => {
@@ -282,12 +271,10 @@ describe('Retreats Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Recherche et filtres
-  // ==========================================
+  // Tests de recherche et filtres (admin)
   describe('GET /retreats/admin/search', () => {
     it('OK admin devrait rechercher par titre', async () => {
-      // D'abord créer une retraite avec ce titre pour la recherche
+      // Je crée d'abord une retraite avec ce titre pour la recherche
       await createTestRetreat(app, adminCookies, {
         titreCard: 'Yoga Retreat Test',
         dates: [
@@ -309,14 +296,14 @@ describe('Retreats Module (e2e)', () => {
           if (response.status === 200) {
             expect(Array.isArray(response.body)).toBe(true);
           } else {
-            // Si 400, c'est peut-être un problème de validation des query params
+            // Si 400, c'est un problème de validation des query params
             expect(response.status).toBe(400);
           }
         });
     });
 
     it('OK admin devrait filtrer par prix max', async () => {
-      // D'abord créer une retraite avec un prix <= 500
+      // Je crée d'abord une retraite avec un prix <= 500
       await createTestRetreat(app, adminCookies, {
         titreCard: 'Retraite Prix Test',
         dates: [
@@ -337,7 +324,7 @@ describe('Retreats Module (e2e)', () => {
           // Peut retourner 200 avec un tableau, ou 400 si problème de validation
           if (response.status === 200) {
             expect(Array.isArray(response.body)).toBe(true);
-            // Vérifier que tous les prix dans les dates sont <= 500
+            // Je vérifie que tous les prix dans les dates sont <= 500
             response.body.forEach((retreat: any) => {
               if (retreat.dates && retreat.dates.length > 0) {
                 retreat.dates.forEach((date: any) => {
@@ -348,7 +335,7 @@ describe('Retreats Module (e2e)', () => {
               }
             });
           } else {
-            // Si 400, c'est peut-être un problème de validation des query params
+            // Si 400, c'est un problème de validation des query params
             expect(response.status).toBe(400);
           }
         });

@@ -1,59 +1,46 @@
-// Import des fonctionnalités NATIVES de NestJS
 import { Module } from '@nestjs/common';
-
-// Import du module de configuration
 import { ConfigModule } from '@nestjs/config';
-
-// Import du module Mongoose pour MongoDB
 import { MongooseModule } from '@nestjs/mongoose';
-
-// Import du module TypeORM pour MySQL (seulement si pas en mode test)
-// En mode test, on ne charge pas TypeORM pour éviter les erreurs
-const TypeOrmModule = process.env.NODE_ENV === 'test' 
-  ? null 
-  : // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('@nestjs/typeorm').TypeOrmModule;
-
-// Import du module de planification (cron jobs)
 import { ScheduleModule } from '@nestjs/schedule';
-
-// Import du module Throttler pour le rate limiting
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-
-// Import de nos modules personnalisés
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
 import { RetreatsModule } from './modules/retreats/retreats.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { StripeModule } from './modules/stripe/stripe.module';
-// AnalyticsModule : import conditionnel pour éviter les erreurs en mode test
-// On ne l'importe que si nécessaire pour éviter que NestJS résolve les dépendances TypeORM
+
+// Import conditionnel de TypeORM pour MySQL (seulement si pas en mode test)
+// En mode test, je ne charge pas TypeORM pour éviter les erreurs
+const TypeOrmModule = process.env.NODE_ENV === 'test' 
+  ? null 
+  : // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@nestjs/typeorm').TypeOrmModule;
 
 
 @Module({
   imports: [
-    // Configuration des variables d'environnement
+    // Je configure les variables d'environnement (disponibles dans tous les modules)
     ConfigModule.forRoot({
-      isGlobal: true, // Disponible dans tous les modules
+      isGlobal: true,
     }),
     
-    // Configuration du rate limiting (limitation des requêtes)
+    // Je configure le rate limiting (limitation des requêtes)
     ThrottlerModule.forRoot([{
       ttl: 60000,        // 1 minute (en millisecondes)
       limit: 100,        // 100 requêtes par minute par IP
     }]),
     
-    // Connexion à MongoDB
+    // Je me connecte à MongoDB
     MongooseModule.forRoot(
       process.env.MONGODB_URI || 'mongodb://localhost:27017/lutea'
     ),
     
-    // Connexion à MySQL pour Analytics
-    // MySQL est optionnel : chargé seulement si les variables sont présentes
+    // Je me connecte à MySQL pour Analytics
+    // MySQL est optionnel : je le charge seulement si les variables sont présentes
     // Si MySQL est indisponible, l'app continue de fonctionner (seulement les analytics sont désactivées)
-    // En mode test, on ne configure PAS TypeORM pour éviter les erreurs de connexion
+    // En mode test, je ne configure PAS TypeORM pour éviter les erreurs de connexion
     ...(process.env.NODE_ENV !== 'test' && 
         TypeOrmModule &&
         process.env.MYSQL_HOST && 
@@ -71,15 +58,15 @@ import { StripeModule } from './modules/stripe/stripe.module';
             entities: [__dirname + '/modules/analytics/entities/*.entity{.ts,.js}'],
             synchronize: false, // Désactivé car les tables sont créées manuellement via SQL
             logging: false, // Désactivé pour réduire les logs
-            retryAttempts: 3, // Réessayer 3 fois en cas d'échec
-            retryDelay: 3000, // Attendre 3 secondes entre chaque tentative
+            retryAttempts: 3, // Je réessaye 3 fois en cas d'échec
+            retryDelay: 3000, // J'attends 3 secondes entre chaque tentative
           };
 
-          // Configuration SSL pour Aiven (ou autres services qui nécessitent SSL)
-          // Si MYSQL_SSL_CA est fourni, utiliser le certificat CA
-          // Sinon, utiliser SSL sans vérification stricte (pour Aiven)
+          // Je configure SSL pour Aiven (ou autres services qui nécessitent SSL)
+          // Si MYSQL_SSL_CA est fourni, j'utilise le certificat CA
+          // Sinon, j'utilise SSL sans vérification stricte (pour Aiven)
           if (process.env.MYSQL_SSL_CA) {
-            // Utiliser le certificat CA fourni
+            // J'utilise le certificat CA fourni
             config.ssl = {
               ca: process.env.MYSQL_SSL_CA,
               rejectUnauthorized: true,
@@ -87,7 +74,7 @@ import { StripeModule } from './modules/stripe/stripe.module';
           } else if (process.env.MYSQL_SSL === 'true' || process.env.MYSQL_SSL === 'required') {
             // SSL requis mais sans certificat CA (Aiven accepte ça)
             config.ssl = {
-              rejectUnauthorized: false, // Accepter le certificat sans vérification stricte
+              rejectUnauthorized: false, // J'accepte le certificat sans vérification stricte
             };
           }
 
@@ -99,32 +86,30 @@ import { StripeModule } from './modules/stripe/stripe.module';
     // Module de planification pour les cron jobs
     ScheduleModule.forRoot(),
     
-    // Nos modules personnalisés
+    // Mes modules personnalisés
     EmailModule,    // Service d'envoi d'emails
     UsersModule,    // Gestion des utilisateurs
     AuthModule,     // Authentification et autorisation
     RetreatsModule, // Gestion des retraites
     BookingsModule, // Gestion des réservations
     StripeModule,   // Intégration Stripe
-    // AnalyticsModule : chargé seulement si MySQL est configuré ET pas en mode test
+    // AnalyticsModule : je le charge seulement si MySQL est configuré ET pas en mode test
     // Si MySQL n'est pas disponible, l'app fonctionne normalement (sans analytics)
-    // En mode test, on ne charge PAS AnalyticsModule du tout pour éviter les erreurs TypeORM
+    // En mode test, je ne charge PAS AnalyticsModule du tout pour éviter les erreurs TypeORM
     ...(process.env.NODE_ENV !== 'test' && 
         process.env.MYSQL_HOST && 
         process.env.MYSQL_USER && 
         process.env.MYSQL_PASSWORD ? [
-      // En production/local, utiliser le vrai module avec TypeORM
+      // En production/local, j'utilise le vrai module avec TypeORM
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('./modules/analytics/analytics.module').AnalyticsModule.forRoot(),
     ] : []),
   ],
   
-  // Contrôleurs globaux (si nécessaire)
   controllers: [],
   
-  // Services globaux (si nécessaire)
   providers: [
-    // Activation globale du rate limiting
+    // J'active globalement le rate limiting
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

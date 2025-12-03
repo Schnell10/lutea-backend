@@ -8,9 +8,7 @@ import { createTestUser, loginTestUser } from './helpers/test-helpers';
 describe('Auth Module (e2e)', () => {
   let app: INestApplication;
 
-  // ==========================================
-  // SETUP : Avant tous les tests
-  // ==========================================
+  // Setup avant tous les tests
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -18,10 +16,10 @@ describe('Auth Module (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     
-    // Appliquer les mêmes middlewares que main.ts
+    // J'applique les mêmes middlewares que main.ts
     app.use(cookieParser());
     
-    // Appliquer les mêmes configurations que main.ts
+    // J'applique les mêmes configurations que main.ts
     app.useGlobalPipes(new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -31,22 +29,18 @@ describe('Auth Module (e2e)', () => {
     await app.init();
   });
 
-  // ==========================================
-  // TEARDOWN : Après tous les tests
-  // ==========================================
+  // Teardown après tous les tests
   afterAll(async () => {
     await app.close();
   });
 
-  // ==========================================
-  // TESTS : Inscription
-  // ==========================================
+  // Tests d'inscription
   describe('/auth/register (POST)', () => {
     it('devrait créer un utilisateur temporaire avec tous les champs valides', () => {
       return request(app.getHttpServer())
         .post('/auth/register')
         .send({
-          email: `test-${Date.now()}@example.com`, // Email unique
+          email: `test-${Date.now()}@example.com`, // Email unique pour éviter les conflits
           password: 'Password123!',
           firstName: 'Test',
           lastName: 'User',
@@ -56,7 +50,7 @@ describe('Auth Module (e2e)', () => {
           postalCode: '75001',
           country: 'France',
         })
-        .expect(201) // Status Created
+        .expect(201) 
         .expect((res) => {
           expect(res.body).toHaveProperty('requiresEmailValidation', true);
           expect(res.body).toHaveProperty('email');
@@ -67,7 +61,7 @@ describe('Auth Module (e2e)', () => {
       return request(app.getHttpServer())
         .post('/auth/register')
         .send({
-          email: 'invalid-email', // ERREUR Format invalide
+          email: 'invalid-email', // Format invalide
           password: 'Password123!',
           firstName: 'Test',
           lastName: 'User',
@@ -77,7 +71,7 @@ describe('Auth Module (e2e)', () => {
           postalCode: '75001',
           country: 'France',
         })
-        .expect(400); // Status Bad Request
+        .expect(400);
     });
 
     it('devrait rejeter une inscription avec un mot de passe faible', () => {
@@ -85,7 +79,7 @@ describe('Auth Module (e2e)', () => {
         .post('/auth/register')
         .send({
           email: `test-${Date.now()}@example.com`,
-          password: '123', // ERREUR Trop court, pas de majuscule, etc.
+          password: '123', // Trop court, pas de majuscule, etc.
           firstName: 'Test',
           lastName: 'User',
           phone: '0612345678',
@@ -103,19 +97,14 @@ describe('Auth Module (e2e)', () => {
         .send({
           email: `test-${Date.now()}@example.com`,
           password: 'Password123!',
-          // ERREUR Manque firstName, lastName, etc.
+          // Manque firstName, lastName, etc.
         })
         .expect(400);
     });
   });
 
-  // ==========================================
-  // TESTS : Connexion
-  // ==========================================
+  // Tests de connexion
   describe('/auth/login (POST)', () => {
-    // Pour ce test, vous aurez besoin d'un utilisateur de test
-    // que vous créez dans le beforeAll ou beforeEach
-    
     it('devrait retourner 401 avec des credentials invalides', () => {
       return request(app.getHttpServer())
         .post('/auth/login')
@@ -123,7 +112,7 @@ describe('Auth Module (e2e)', () => {
           email: 'nonexistant@example.com',
           password: 'wrongpassword',
         })
-        .expect(401); // Status Unauthorized
+        .expect(401);
     });
 
     it('devrait retourner 401 ou 400 si email ou password manquant', () => {
@@ -131,7 +120,7 @@ describe('Auth Module (e2e)', () => {
         .post('/auth/login')
         .send({
           email: 'test@example.com',
-          // ERREUR Manque password
+          // Manque password
         })
         .expect((response) => {
           // Peut retourner 400 (validation) ou 401 (authentification)
@@ -140,24 +129,22 @@ describe('Auth Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Profil utilisateur
-  // ==========================================
+  // Tests de profil utilisateur
   describe('/auth/profile (GET)', () => {
     it('devrait retourner 401 sans token JWT', () => {
       return request(app.getHttpServer())
         .get('/auth/profile')
-        .expect(401); // Status Unauthorized
+        .expect(401);
     });
 
     it('devrait retourner le profil utilisateur avec un token valide', async () => {
-      // Créer un utilisateur de test
+      // Je crée un utilisateur de test
       const { user } = await createTestUser(app);
       
-      // Se connecter pour obtenir les tokens
+      // Je me connecte pour obtenir les tokens
       const { cookies } = await loginTestUser(app, user.email, user.password);
       
-      // Récupérer le profil avec le token
+      // Je récupère le profil avec le token
       return request(app.getHttpServer())
         .get('/auth/profile')
         .set('Cookie', cookies)
@@ -170,20 +157,16 @@ describe('Auth Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Refresh token
-  // ==========================================
+  // Tests de refresh token
   describe('/auth/refresh (POST)', () => {
     it('devrait retourner 400 sans refresh token', () => {
       return request(app.getHttpServer())
         .post('/auth/refresh')
-        .expect(400); // Status Bad Request
+        .expect(400);
     });
   });
 
-  // ==========================================
-  // TESTS : Mot de passe oublié
-  // ==========================================
+  // Tests de mot de passe oublié
   describe('/auth/forgot-password (POST)', () => {
     it('devrait retourner 200 même avec un email inexistant (sécurité)', () => {
       return request(app.getHttpServer())
@@ -191,7 +174,7 @@ describe('Auth Module (e2e)', () => {
         .send({
           email: 'nonexistant@example.com',
         })
-        .expect(200) // OK Ne révèle pas si l'email existe
+        .expect(200) // Ne révèle pas si l'email existe (sécurité)
         .expect((res) => {
           expect(res.body.message).toContain('Si cet email existe');
         });

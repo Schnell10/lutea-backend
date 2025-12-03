@@ -12,22 +12,17 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 import { securityConfig } from '../../config/security.config';
 
 /**
- * Module d'authentification
- * 
- * Configure l'authentification JWT et locale
- * - Importe UsersModule pour la gestion des utilisateurs
- * - Importe EmailModule pour la validation reCAPTCHA
- * - Configure PassportModule pour l'authentification
- * - Configure JwtModule avec clé secrète et expiration
- * - Exporte AuthService pour les autres modules
+ * Module d'authentification : je configure l'authentification JWT et locale.
+ * J'importe UsersModule et EmailModule, je configure PassportModule et JwtModule,
+ * et j'exporte AuthService pour les autres modules.
  */
 @Module({
   imports: [
-    UsersModule,      // Pour utiliser UsersService dans AuthService
-    EmailModule,      // Pour utiliser EmailService (validation reCAPTCHA)
-    PassportModule,   // Active Passport.js pour l'authentification
+    UsersModule,
+    EmailModule,
+    PassportModule,
     
-    // Configuration JWT avec variables d'environnement
+    // Je configure JWT avec variables d'environnement
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -43,12 +38,12 @@ import { securityConfig } from '../../config/security.config';
   controllers: [AuthController],
   
   providers: [
-    AuthService,      // Service principal d'authentification
-    LocalStrategy,    // Stratégie pour email/mot de passe
-    JwtStrategy,      // Stratégie pour validation JWT
-    AdminGuard,       // Guard pour vérifier le rôle admin
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    AdminGuard,
   ],
   
-  exports: [AuthService, JwtModule], // Exporte AuthService et JwtModule pour les autres modules
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

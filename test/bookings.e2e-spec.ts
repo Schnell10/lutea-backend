@@ -12,9 +12,7 @@ describe('Bookings Module (e2e)', () => {
   let adminCookies: string;
   let testRetreatId: string;
 
-  // ==========================================
-  // SETUP
-  // ==========================================
+  // Setup avant tous les tests
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -22,7 +20,7 @@ describe('Bookings Module (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     
-    // Appliquer les mêmes middlewares que main.ts
+    // J'applique les mêmes middlewares que main.ts
     app.use(cookieParser());
     
     app.useGlobalPipes(new ValidationPipe({
@@ -33,14 +31,14 @@ describe('Bookings Module (e2e)', () => {
 
     await app.init();
 
-    // Créer un utilisateur normal
+    // Je crée un utilisateur normal
     const { user } = await createTestUser(app, {
       email: `user-${Date.now()}@example.com`,
     });
     const loginResponse = await loginTestUser(app, user.email, user.password);
     userCookies = loginResponse.cookies;
 
-    // Créer un admin pour créer une retraite
+    // Je crée un admin pour créer une retraite
     const { user: admin } = await createTestUser(app, {
       email: `admin-${Date.now()}@example.com`,
       role: 'admin',
@@ -48,7 +46,7 @@ describe('Bookings Module (e2e)', () => {
     const adminLoginResponse = await loginTestUser(app, admin.email, admin.password);
     adminCookies = adminLoginResponse.cookies;
 
-    // Créer une retraite de test
+    // Je crée une retraite de test
     const retreatResponse = await createTestRetreat(app, adminCookies, {
       titreCard: 'Retraite de Test E2E',
       prix: 500,
@@ -61,9 +59,8 @@ describe('Bookings Module (e2e)', () => {
     await app.close();
   });
 
-  // ==========================================
-  // TESTS : Créer une réservation
-  // ==========================================
+
+  // Tests de création de réservation
   describe('POST /bookings', () => {
     it('OK devrait créer une réservation avec tous les champs valides', async () => {
       const response = await createTestBooking(app, userCookies, testRetreatId, {
@@ -79,7 +76,7 @@ describe('Bookings Module (e2e)', () => {
 
     it('OK devrait créer une réservation sans authentification (booking anonyme)', async () => {
       // La route POST /bookings accepte les bookings anonymes (pas de @UseGuards)
-      // Récupérer les dates exactes de la retraite
+      // Je récupère les dates exactes de la retraite
       const RetreatModel = app.get(getModelToken('Retreat'));
       const retreat = await RetreatModel.findById(testRetreatId).exec();
       const retreatDate = retreat?.dates?.[0];
@@ -92,7 +89,7 @@ describe('Bookings Module (e2e)', () => {
       const bookingData = {
         retreatId: testRetreatId,
         nbPlaces: 1,
-        dateStart: retreatDate.start, // Utiliser les dates exactes de la retraite
+        dateStart: retreatDate.start, // J'utilise les dates exactes de la retraite
         dateEnd: retreatDate.end,
         participants: [{ prenom: 'Test', nom: 'User', email: 'test@example.com' }],
         billingAddress: {
@@ -109,7 +106,7 @@ describe('Bookings Module (e2e)', () => {
         .send(bookingData);
       
       // Un booking anonyme peut être créé (201) ou échouer avec 400/404 (validation/date)
-      // On vérifie que la requête est gérée correctement
+      // Je vérifie que la requête est gérée correctement
       if (response.status === 201) {
         // Booking créé avec succès (anonyme)
         expect(response.body).toHaveProperty('_id');
@@ -148,7 +145,6 @@ describe('Bookings Module (e2e)', () => {
     });
 
     it('ERREUR devrait rejeter une réservation avec nbPlaces invalide', async () => {
-      // Utiliser createTestBooking mais avec un nbPlaces invalide
       const bookingData = {
         retreatId: testRetreatId,
         nbPlaces: -1, // Nombre négatif
@@ -172,12 +168,10 @@ describe('Bookings Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Récupérer ses réservations
-  // ==========================================
+  // Tests de récupération des réservations
   describe('GET /bookings/my-bookings', () => {
     it('OK devrait récupérer toutes les réservations de l\'utilisateur', async () => {
-      // D'abord créer une réservation pour cet utilisateur
+      // Je crée d'abord une réservation pour cet utilisateur
       await createTestBooking(app, userCookies, testRetreatId, {
         nbPlaces: 1,
       });
@@ -200,35 +194,32 @@ describe('Bookings Module (e2e)', () => {
     });
   });
 
-  // ==========================================
-  // TESTS : Récupérer une réservation par ID
-  // ==========================================
+  // Tests de récupération d'une réservation par ID
   describe('GET /bookings/:id', () => {
     let bookingId: string;
 
     beforeAll(async () => {
-      // Créer une réservation pour les tests
+      // Je crée une réservation pour les tests
       try {
         const response = await createTestBooking(app, userCookies, testRetreatId, {
           nbPlaces: 1,
         });
         bookingId = response.booking._id;
       } catch (error) {
-        // Si la création échoue, skip les tests qui dépendent de bookingId
+        // Si la création échoue, je skip les tests qui dépendent de bookingId
         console.error('ATTENTION Échec création booking pour tests:', error);
         bookingId = ''; // Valeur par défaut pour éviter les erreurs
       }
     });
 
     it('OK devrait récupérer une réservation par ID', async () => {
-      // Si bookingId n'est pas défini, skip le test
+      // Si bookingId n'est pas défini, je skip le test
       if (!bookingId) {
         console.warn('ATTENTION Test skip: bookingId non défini (création échouée)');
         return;
       }
       
-      // Vérifier d'abord que le booking existe et appartient à l'utilisateur
-      // En créant un nouveau booking juste avant ce test pour s'assurer qu'il appartient au bon user
+      // Je crée un nouveau booking juste avant ce test pour m'assurer qu'il appartient au bon user
       const freshBooking = await createTestBooking(app, userCookies, testRetreatId, {
         nbPlaces: 1,
       });
@@ -244,7 +235,7 @@ describe('Bookings Module (e2e)', () => {
             expect(booking._id?.toString()).toBe(freshBookingId);
             expect(booking.retreatId?.toString()).toBe(testRetreatId);
           } else {
-            // Si 500, c'est peut-être un problème d'accès - accepter les deux pour l'instant
+            // Si 500, c'est peut-être un problème d'accès - j'accepte les deux pour l'instant
             expect([200, 500]).toContain(response.status);
           }
         });
@@ -265,9 +256,7 @@ describe('Bookings Module (e2e)', () => {
   });
 
 
-  // ==========================================
-  // TESTS : Admin - Gérer les réservations
-  // ==========================================
+  // Tests admin - gestion des réservations
   describe('GET /bookings/admin/all (Admin)', () => {
     it('OK admin devrait voir toutes les réservations', async () => {
       return request(app.getHttpServer())

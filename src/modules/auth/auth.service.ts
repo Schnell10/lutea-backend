@@ -1,82 +1,51 @@
-// Import des fonctionnalités NATIVES de NestJS
-// Injectable : Décorateur qui permet à NestJS d'injecter ce service dans d'autres classes
-// UnauthorizedException : Exception NATIVE de NestJS pour les erreurs 401 (Non autorisé)
-// ForbiddenException : Exception NATIVE de NestJS pour les erreurs 403 (Accès interdit)
-// BadRequestException : Exception NATIVE de NestJS pour les erreurs 400 (Requête invalide)
 import { Injectable, UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
-
-// Import du service JWT de NestJS
-// JwtService : Service NATIVE de @nestjs/jwt pour créer et vérifier des JWT
 import { JwtService } from '@nestjs/jwt';
-
-// Import de notre service utilisateur
 import { UsersService } from '../users/users.service';
-
-// Import du service email pour la validation reCAPTCHA
 import { EmailService } from '../email/email.service';
-
-// Import des DTOs et types
-// CreateUserDto : Structure des données pour créer un utilisateur
-// UserRole : Énumération des rôles (CLIENT, ADMIN)
-// UserDocument : Type utilisateur avec méthodes Mongoose
 import { CreateUserDto } from '../users/dto/users.dto';
 import { UserRole, UserDocument } from '../users/users.schema';
-
-// Import de notre configuration de sécurité centralisée
 import { securityConfig } from '../../config/security.config';
-
-// Import du logger personnalisé
 import { logger } from '../../common/utils/logger';
 
-// Décorateur Injectable : Permet à NestJS d'injecter ce service dans d'autres classes
 @Injectable()
 export class AuthService {
-  
-  // Constructeur avec injection de dépendances
-  // NestJS va automatiquement créer des instances de UsersService, JwtService et EmailService
   constructor(
-    private usersService: UsersService,  // Service pour gérer les utilisateurs
-    private jwtService: JwtService,     // Service pour gérer les JWT
-    private emailService: EmailService, // Service pour la validation reCAPTCHA
+    private usersService: UsersService,
+    private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
-  // VALIDATION UTILISATEUR (pour LocalStrategy)
-  // Cette méthode est appelée par le LocalAuthGuard lors de la connexion
-  // email: string : Email fourni par l'utilisateur
-  // password: string : Mot de passe fourni par l'utilisateur
-  // Promise<any> : Retourne les informations utilisateur (sans mot de passe)
+  // Je valide un utilisateur (appelé par LocalAuthGuard lors de la connexion)
   async validateUser(email: string, password: string): Promise<any> {
-    logger.log(`🔐 [AuthService] Tentative de validation utilisateur: ${email}`);
+    logger.log(`[AuthService] Tentative de validation utilisateur: ${email}`);
     
-    // Validation des entrées - Vérification que les champs ne sont pas vides
+    // Je vérifie que les champs ne sont pas vides
     if (!email || !password) {
-      logger.log(`❌ [AuthService] Champs manquants - Email: ${!!email}, Password: ${!!password}`);
-      // BadRequestException : Erreur 400 - La requête est mal formée
+      logger.log(`[AuthService] Champs manquants - Email: ${!!email}, Password: ${!!password}`);
       throw new BadRequestException('Email et mot de passe requis');
     }
 
-    // Recherche de l'utilisateur par email
-    // as UserDocument : Cast TypeScript pour indiquer le type exact
+    // Je recherche l'utilisateur par email
     const user = await this.usersService.findByEmail(email) as UserDocument;
     
     // Vérification 1 : L'utilisateur existe-t-il ?
     if (!user) {
-      logger.log(`❌ [AuthService] Utilisateur non trouvé: ${email}`);
+      logger.log(`[AuthService] Utilisateur non trouvé: ${email}`);
       
-      // Vérifier si l'email existe dans la table temporaire (inscription en attente)
-      // C'est le SEUL cas où on révèle qu'un email existe
+      // Je vérifie si l'email existe dans la table temporaire (inscription en attente)
+      // C'est le SEUL cas où je révèle qu'un email existe
       const userStatus = await this.usersService.checkTemporaryUserStatus(email);
       if (userStatus.isTemporary) {
-        logger.log(`📝 [AuthService] Utilisateur temporaire trouvé: ${email}`);
+        logger.log(`[AuthService] Utilisateur temporaire trouvé: ${email}`);
         
-        // Créer un message d'erreur avec le temps restant précis
+        // Je crée un message d'erreur avec le temps restant précis
         let errorMessage = 'Un compte avec cet email est en attente de validation. Veuillez vérifier votre boîte mail pour confirmer votre compte.';
         
         if (userStatus.timeLeft !== undefined) {
           if (userStatus.timeLeft === 0) {
             errorMessage += ' Le délai de validation a expiré. Veuillez vous réinscrire.';
           } else {
-            // Calculer le temps restant en heures et minutes
+            // Je calcule le temps restant en heures et minutes
             const hoursLeft = Math.floor(userStatus.timeLeft / (1000 * 60 * 60));
             const minutesLeft = Math.floor((userStatus.timeLeft % (1000 * 60 * 60)) / (1000 * 60));
             
@@ -96,18 +65,17 @@ export class AuthService {
       }
       
       // Si pas d'utilisateur permanent ni temporaire, message générique (sécurité)
-      logger.log(`❌ [AuthService] Aucun compte trouvé (permanent ou temporaire): ${email}`);
+      logger.log(`[AuthService] Aucun compte trouvé (permanent ou temporaire): ${email}`);
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
-    logger.log(`✅ [AuthService] Utilisateur trouvé: ${email} (Rôle: ${user.role})`);
+    logger.log(`[AuthService] Utilisateur trouvé: ${email} (Rôle: ${user.role})`);
 
     // Vérification 2 : Le compte est-il verrouillé ?
-    // this.usersService.isAccountLocked() : Vérifie si le compte est temporairement verrouillé
     if (this.usersService.isAccountLocked(user)) {
-      logger.log(`🔒 [AuthService] Compte verrouillé: ${email}`);
+      logger.log(`[AuthService] Compte verrouillé: ${email}`);
       
-      // Calculer le temps restant de blocage
+      // Je calcule le temps restant de blocage
       const lockUntil = user.lockUntil;
       if (lockUntil) {
         const now = new Date();
@@ -119,42 +87,37 @@ export class AuthService {
         }
       }
       
-      // Si pas de date de verrouillage ou déjà expirée
       throw new UnauthorizedException('Compte temporairement verrouillé');
     }
 
     // Vérification 3 : Le mot de passe est-il correct ?
-    // this.usersService.validatePassword() : Compare le mot de passe avec le hash en base
     const isPasswordValid = await this.usersService.validatePassword(user, password);
     
     // Si le mot de passe est incorrect
     if (!isPasswordValid) {
-      logger.log(`❌ [AuthService] Mot de passe incorrect: ${email}`);
-      // Incrémenter les tentatives échouées
+      logger.log(`[AuthService] Mot de passe incorrect: ${email}`);
+      // J'incrémente les tentatives échouées
       await this.usersService.incrementFailedAttempts(email);
       
-      // Récupérer l'utilisateur mis à jour pour avoir le bon nombre de tentatives
+      // Je récupère l'utilisateur mis à jour pour avoir le bon nombre de tentatives
       const updatedUser = await this.usersService.findByEmail(email);
       
-      // Verrouiller le compte après le nombre de tentatives configuré
-      // securityConfig.login.lockThreshold : Nombre de tentatives depuis la config centralisée
+      // Je verrouille le compte après le nombre de tentatives configuré
       if (updatedUser.failedLoginAttempts >= securityConfig.login.lockThreshold) {
-        // Verrouiller le compte pendant la durée configurée
-        // securityConfig.login.lockDuration : Durée depuis la config centralisée
-        logger.log(`🔒 [AuthService] Verrouillage du compte: ${email} (${updatedUser.failedLoginAttempts} tentatives échouées)`);
+        logger.log(`[AuthService] Verrouillage du compte: ${email} (${updatedUser.failedLoginAttempts} tentatives échouées)`);
         await this.usersService.lockAccount(email, securityConfig.login.lockDuration);
         
-        // Calculer le temps restant de blocage
+        // Je calcule le temps restant de blocage
         const lockUntil = new Date(Date.now() + securityConfig.login.lockDuration * 60 * 1000);
         const minutesRemaining = Math.ceil((lockUntil.getTime() - Date.now()) / (1000 * 60));
         
         throw new UnauthorizedException(`Compte verrouillé après trop de tentatives échouées. Déverrouillage dans ${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''}.`);
       }
       
-      // Calculer le nombre d'essais restants
+      // Je calcule le nombre d'essais restants
       const remainingAttempts = securityConfig.login.lockThreshold - updatedUser.failedLoginAttempts;
       
-      // Créer une exception avec les informations sur les tentatives restantes
+      // Je crée une exception avec les informations sur les tentatives restantes
       const errorMessage = `Email ou mot de passe incorrect. Il vous reste ${remainingAttempts} tentative${remainingAttempts > 1 ? 's' : ''}.`;
       const error = new UnauthorizedException(errorMessage);
       (error as any).remainingAttempts = remainingAttempts;
@@ -162,26 +125,26 @@ export class AuthService {
       throw error;
     }
 
-    logger.log(`✅ [AuthService] Mot de passe validé: ${email}`);
+    logger.log(`[AuthService] Mot de passe validé: ${email}`);
 
-    // Si le mot de passe est correct, réinitialiser les tentatives échouées
+    // Si le mot de passe est correct, je réinitialise les tentatives échouées
     await this.usersService.resetFailedAttempts(email);
     
-    // Mettre à jour la date de dernière connexion
+    // Je mets à jour la date de dernière connexion
     await this.usersService.updateLastLogin(user._id.toString());
 
-    // VÉRIFICATION 2FA AUTOMATIQUE POUR LES ADMINS
+    // Je vérifie la 2FA automatiquement pour les admins
     if (user.role === UserRole.ADMIN) {
-      logger.log(`🔐 [AuthService] Utilisateur admin détecté, génération 2FA: ${email}`);
-      // Générer et envoyer le code 2FA automatiquement
+      logger.log(`[AuthService] Utilisateur admin détecté, génération 2FA: ${email}`);
+      // Je génère et envoie le code 2FA automatiquement
       const twoFAResult = await this.usersService.generateAndSendVerificationCode(email);
       
       if (!twoFAResult.success) {
-        logger.log(`❌ [AuthService] Erreur génération 2FA: ${email}`);
+        logger.log(`[AuthService] Erreur génération 2FA: ${email}`);
         throw new UnauthorizedException('Erreur lors de la génération du code 2FA');
       }
       
-      // Retourner un objet spécial indiquant que la 2FA est requise
+      // Je retourne un objet spécial indiquant que la 2FA est requise
       const userObj = user.toObject();
       const { password: _, ...result } = userObj;
       return {
@@ -191,78 +154,66 @@ export class AuthService {
       };
     }
 
-    logger.log(`✅ [AuthService] Validation réussie (utilisateur normal): ${email}`);
-    // Retourner l'utilisateur sans le mot de passe (sécurité)
-    // user.toObject() : Convertit le document Mongoose en objet JavaScript simple
-    // const { password: _, ...result } : Destructuration pour supprimer le mot de passe
-    // password: _ : Renomme password en _ (convention pour "non utilisé")
-    // ...result : Récupère toutes les autres propriétés
+    logger.log(`[AuthService] Validation réussie (utilisateur normal): ${email}`);
+    // Je retourne l'utilisateur sans le mot de passe (sécurité)
     const userObj = user.toObject();
     const { password: _, ...result } = userObj;
     return result;
   }
 
-  // CONNEXION UTILISATEUR
-  // Cette méthode est appelée après validation réussie par LocalAuthGuard
-  // user: UserDocument : Utilisateur validé (sans mot de passe)
-  // Retourne les tokens JWT et les informations utilisateur
+  // Je génère les tokens JWT après validation réussie par LocalAuthGuard
   login(user: UserDocument) {
-    logger.log(`🚀 [AuthService] Génération des tokens JWT pour: ${user.email}`);
+    logger.log(`[AuthService] Génération des tokens JWT pour: ${user.email}`);
     
-    // Création du payload pour le JWT d'accès
-    // Le payload contient les informations qui seront encodées dans le token
+    // Je crée le payload pour le JWT d'accès
     const payload = { 
-      email: user.email,                    // Email de l'utilisateur
-      sub: user._id.toString(),             // ID MongoDB (subject du JWT)
-      role: user.role,                      // Rôle de l'utilisateur
+      email: user.email,
+      sub: user._id.toString(), // ID MongoDB (subject du JWT)
+      role: user.role,
     };
 
-    logger.log(`📝 [AuthService] Payload JWT créé:`, { email: user.email, role: user.role, sub: user._id.toString() });
+    logger.log(`[AuthService] Payload JWT créé:`, { email: user.email, role: user.role, sub: user._id.toString() });
 
-    // Génération du JWT d'accès avec la configuration centralisée
-    // securityConfig.jwt.accessTokenExpiry : Durée depuis la config (15m)
+    // Je génère le JWT d'accès avec la configuration centralisée
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: securityConfig.jwt.accessTokenExpiry
     });
 
-    logger.log(`🔑 [AuthService] Access token généré (expire dans ${securityConfig.jwt.accessTokenExpiry})`);
+    logger.log(`[AuthService] Access token généré (expire dans ${securityConfig.jwt.accessTokenExpiry})`);
 
-    // Génération du refresh token avec la configuration centralisée
-    // securityConfig.jwt.refreshTokenExpiry : Durée depuis la config (7d)
+    // Je génère le refresh token avec la configuration centralisée
     const refreshToken = this.jwtService.sign(
       { 
-        sub: user._id.toString(),           // ID de l'utilisateur
-        type: 'refresh',                    // Type de token (pour distinguer access/refresh)
+        sub: user._id.toString(),
+        type: 'refresh', // Pour distinguer access/refresh
       },
       { expiresIn: securityConfig.jwt.refreshTokenExpiry }
     );
 
-    logger.log(`🔄 [AuthService] Refresh token généré (expire dans ${securityConfig.jwt.refreshTokenExpiry})`);
+    logger.log(`[AuthService] Refresh token généré (expire dans ${securityConfig.jwt.refreshTokenExpiry})`);
 
-    // Retourne les tokens et informations utilisateur
+    // Je retourne les tokens et informations utilisateur
     const result = {
-      access_token: accessToken,        // Token d'accès (15 minutes)
-      refresh_token: refreshToken,      // Token de renouvellement (7 jours)
-      expires_in: 15 * 60,             // Durée de vie en secondes (15 minutes)
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: 15 * 60, // 15 minutes
       user: {
-        id: user._id.toString(),        // ID de l'utilisateur
-        email: user.email,              // Email
-        firstName: user.firstName,      // Prénom
-        lastName: user.lastName,        // Nom
-        role: user.role,                // Rôle
-        isEmailVerified: user.isEmailVerified, // Email vérifié ou non
+        id: user._id.toString(),
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
       }
     };
 
-    logger.log(`✅ [AuthService] Connexion réussie pour: ${user.email} (Rôle: ${user.role})`);
+    logger.log(`[AuthService] Connexion réussie pour: ${user.email} (Rôle: ${user.role})`);
     return result;
   }
 
-  // INSCRIPTION UTILISATEUR
-  // createUserDto: CreateUserDto : Données validées pour créer un utilisateur
-  // Retourne l'utilisateur créé (sans mot de passe)
+  // Je gère l'inscription d'un utilisateur (création d'un compte temporaire)
   async register(createUserDto: CreateUserDto) {
-    logger.log('📝 [AuthService] Tentative d\'inscription avec données:', {
+    logger.log('[AuthService] Tentative d\'inscription avec données:', {
       email: createUserDto.email,
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
@@ -276,29 +227,29 @@ export class AuthService {
       hasToken: !!createUserDto.token
     });
 
-    // Vérification reCAPTCHA si un token est fourni
+    // Je vérifie reCAPTCHA si un token est fourni
     if (createUserDto.token) {
-      logger.log('🔒 [AuthService] Token reCAPTCHA reçu, vérification en cours...');
+      logger.log('[AuthService] Token reCAPTCHA reçu, vérification en cours...');
       const isRecaptchaValid = await this.emailService.verifyRecaptcha(createUserDto.token);
       if (!isRecaptchaValid) {
-        logger.log('❌ [AuthService] Échec de la vérification reCAPTCHA pour l\'inscription');
+        logger.log('[AuthService] Échec de la vérification reCAPTCHA pour l\'inscription');
         throw new BadRequestException('Échec de la vérification reCAPTCHA');
       }
-      logger.log('✅ [AuthService] reCAPTCHA validé, inscription en cours...');
+      logger.log('[AuthService] reCAPTCHA validé, inscription en cours...');
     } else {
-      logger.log('⚠️ [AuthService] Aucun token reCAPTCHA fourni pour l\'inscription');
+      logger.log('[AuthService] Aucun token reCAPTCHA fourni pour l\'inscription');
     }
 
-    // Validation des entrées - Vérification que les champs obligatoires sont présents
+    // Je vérifie que les champs obligatoires sont présents
     if (!createUserDto.email || !createUserDto.password) {
-      logger.log('❌ [AuthService] Champs de base manquants:', {
+      logger.log('[AuthService] Champs de base manquants:', {
         hasEmail: !!createUserDto.email,
         hasPassword: !!createUserDto.password
       });
       throw new BadRequestException('Email et mot de passe requis');
     }
 
-    // Vérification des champs de contact requis
+    // Je vérifie les champs de contact requis
     const missingFields = [];
     if (!createUserDto.phone) missingFields.push('téléphone');
     if (!createUserDto.address) missingFields.push('adresse');
@@ -307,176 +258,141 @@ export class AuthService {
     if (!createUserDto.country) missingFields.push('pays');
 
     if (missingFields.length > 0) {
-      logger.log('❌ [AuthService] Champs de contact manquants:', missingFields);
+      logger.log('[AuthService] Champs de contact manquants:', missingFields);
       throw new BadRequestException(`Champs manquants : ${missingFields.join(', ')}`);
     }
 
-    // La validation du mot de passe est maintenant gérée automatiquement par le ValidationPipe
-    // via les décorateurs @MinLength(8) et @Matches() dans CreateUserDto
+    logger.log('[AuthService] Validation des données réussie, création de l\'utilisateur...');
 
-    logger.log('✅ [AuthService] Validation des données réussie, création de l\'utilisateur...');
-
-    // Vérification si l'email existe déjà
-    // this.usersService.findByEmail() : Recherche en base de données
+    // Je vérifie si l'email existe déjà
     const existingUser = await this.usersService.findByEmail(createUserDto.email);
     if (existingUser) {
-      logger.log('❌ [AuthService] Email déjà utilisé:', createUserDto.email);
-      // ForbiddenException : Erreur 403 - L'email est déjà utilisé
+      logger.log('[AuthService] Email déjà utilisé:', createUserDto.email);
       throw new ForbiddenException('Un utilisateur avec cet email existe déjà');
     }
 
-    // Création de l'utilisateur (toujours en tant que CLIENT pour la sécurité)
-    // this.usersService.prepareRegistration() : Prépare l'inscription avec validation email
+    // Je prépare l'inscription avec validation email (création d'un compte temporaire)
     const registrationResult = await this.usersService.prepareRegistration(createUserDto);
     
-    logger.log('✅ [AuthService] Inscription préparée avec succès pour:', createUserDto.email);
+    logger.log('[AuthService] Inscription préparée avec succès pour:', createUserDto.email);
     
-    // Note: L'utilisateur n'est pas encore créé, il faut valider l'email d'abord
-    // Retourner le résultat de la préparation
+    // L'utilisateur n'est pas encore créé, il faut valider l'email d'abord
     return {
       message: 'Inscription préparée. Veuillez vérifier votre email pour activer votre compte.',
       email: registrationResult.email,
       requiresEmailValidation: true
     };
-
-    // L'utilisateur n'est pas encore créé, il faut valider l'email d'abord
   }
 
-  // RÉFRESH DU TOKEN
-  // refreshToken: string : Token de renouvellement fourni par le client
-  // Retourne un nouveau token d'accès
+  // Je renouvelle le token d'accès avec un refresh token valide
   async refreshToken(refreshToken: string) {
-    // Validation que le refresh token est fourni
     if (!refreshToken) {
       throw new BadRequestException('Token de refresh requis');
     }
 
     try {
-      // Vérification du refresh token
-      // this.jwtService.verify() : Décode et vérifie la validité du token
+      // Je vérifie le refresh token
       const payload = this.jwtService.verify(refreshToken);
       
-      // Vérification que c'est bien un token de refresh
+      // Je vérifie que c'est bien un token de refresh
       if (payload.type !== 'refresh') {
         throw new UnauthorizedException('Token de refresh invalide');
       }
 
-      // Récupération de l'utilisateur depuis la base de données
-      // payload.sub : ID de l'utilisateur extrait du token
+      // Je récupère l'utilisateur depuis la base de données
       const user = await this.usersService.findById(payload.sub) as UserDocument;
       if (!user) {
         throw new UnauthorizedException('Utilisateur non trouvé');
       }
 
-      // Vérification que le compte existe toujours
-      // Note: isActive a été supprimé, on vérifie juste l'existence
-
-      // Génération d'un nouveau JWT d'accès
+      // Je génère un nouveau JWT d'accès
       const newPayload = { 
-        email: user.email,                    // Email de l'utilisateur
-        sub: user._id.toString(),             // ID MongoDB
-        role: user.role,                      // Rôle
-        // Pas de iat ni exp - le JWT service s'en charge automatiquement
+        email: user.email,
+        sub: user._id.toString(),
+        role: user.role,
       };
       
-      // Création du nouveau token (le JWT service gère automatiquement l'expiration)
       const newAccessToken = this.jwtService.sign(newPayload);
 
-      // Retourne le nouveau token et les informations utilisateur
+      // Je retourne le nouveau token et les informations utilisateur
       return {
-        access_token: newAccessToken,    // Nouveau token d'accès
-        expires_in: 15 * 60,            // Durée de vie en secondes
+        access_token: newAccessToken,
+        expires_in: 15 * 60,
         user: {
-          id: user._id.toString(),      // ID de l'utilisateur
-          email: user.email,            // Email
-          firstName: user.firstName,    // Prénom
-          lastName: user.lastName,      // Nom
-          role: user.role,              // Rôle
-          isEmailVerified: user.isEmailVerified, // Email vérifié
+          id: user._id.toString(),
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified,
         }
       };
     } catch (error) {
-      // Gestion des erreurs de vérification du token
       if (error instanceof UnauthorizedException) {
-        // Si c'est déjà une UnauthorizedException, la relancer
         throw error;
       }
-      // Sinon, créer une nouvelle UnauthorizedException
       throw new UnauthorizedException('Token de refresh invalide');
     }
   }
 
-
-  // VÉRIFICATION DU CODE (pour admin)
-  // email: string : Email de l'administrateur
-  // code: string : Code de vérification saisi
-  // Retourne true si le code est valide, false sinon
+  // Je vérifie un code 2FA (pour admin)
   async verifyCode(email: string, code: string): Promise<boolean> {
-    // Validation des entrées
     if (!email || !code) {
       throw new BadRequestException('Email et code requis');
     }
 
-    // Vérification du code via le service utilisateur
+    // Je vérifie le code via le service utilisateur
     const isValid = await this.usersService.verifyCode(email, code);
     
     if (isValid) {
-      // Supprimer le code utilisé (sécurité)
+      // Je supprime le code utilisé (sécurité)
       await this.usersService.clearVerificationCode(email);
     }
 
     return isValid;
   }
 
-  // FINALISATION DE LA CONNEXION ADMIN AVEC 2FA
-  // email: string : Email de l'administrateur
-  // code: string : Code 2FA saisi
-  // Retourne les tokens JWT après validation 2FA réussie
+  // Je finalise la connexion admin avec le code 2FA
   async finalizeAdminLogin(email: string, code: string): Promise<any> {
-    // Vérifier le code 2FA
+    // Je vérifie le code 2FA
     const isCodeValid = await this.verifyCode(email, code);
     
     if (!isCodeValid) {
       throw new UnauthorizedException('Code 2FA invalide ou expiré');
     }
 
-    // Récupérer l'utilisateur admin
+    // Je récupère l'utilisateur admin
     const user = await this.usersService.findByEmail(email);
     if (!user || user.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Accès administrateur requis');
     }
 
-    // Générer les tokens JWT (connexion réussie)
+    // Je génère les tokens JWT (connexion réussie)
     return this.login(user as UserDocument);
   }
 
-
-  // DÉCONNEXION
-  // Retourne un message de confirmation
-  // Note : Cette méthode pourrait être étendue pour invalider les tokens
+  // Je gère la déconnexion
   logout(): { message: string } {
-    // TODO: Ajouter le token à une liste noire si nécessaire
-    // Pour l'instant, retourne juste un message de succès
     return { message: 'Déconnexion réussie' };
   }
 
-  // VALIDATION EMAIL (depuis lien reçu par email) -> création compte définitif + connexion automatique
+  // Je valide l'email depuis le lien reçu par email (création compte définitif + connexion automatique)
   async validateEmail(token: string): Promise<{ message: string; user: any; access_token: string; refresh_token: string }> {
-    logger.log(`🔐 [AuthService] Tentative de validation email avec token: ${token.substring(0, 8)}...`);
+    logger.log(`[AuthService] Tentative de validation email avec token: ${token.substring(0, 8)}...`);
     
     if (!token) {
       throw new BadRequestException('Token requis');
     }
 
     try {
-      logger.log(`📝 [AuthService] Création du compte après validation email...`);
+      logger.log(`[AuthService] Création du compte après validation email...`);
       const user = await this.usersService.createAccountAfterEmailValidation(token);
-      logger.log(`✅ [AuthService] Compte créé avec succès: ${user.email}`);
+      logger.log(`[AuthService] Compte créé avec succès: ${user.email}`);
       
-      // Connexion automatique après validation
-      logger.log(`🔑 [AuthService] Génération des tokens de connexion...`);
+      // Je connecte automatiquement après validation
+      logger.log(`[AuthService] Génération des tokens de connexion...`);
       const loginResult = this.login(user as UserDocument);
-      logger.log(`✅ [AuthService] Tokens générés avec succès pour: ${user.email}`);
+      logger.log(`[AuthService] Tokens générés avec succès pour: ${user.email}`);
       
       return { 
         message: 'Email validé avec succès. Votre compte a été créé et vous êtes maintenant connecté.',
@@ -485,35 +401,31 @@ export class AuthService {
         refresh_token: loginResult.refresh_token
       };
     } catch (error) {
-      logger.error(`❌ [AuthService] Erreur lors de la validation email:`, error);
-      throw error; // Remonter l'erreur pour que le contrôleur puisse la gérer
+      logger.error(`[AuthService] Erreur lors de la validation email:`, error);
+      throw error;
     }
   }
 
-  // RÉCUPÉRER PROFIL UTILISATEUR COMPLET
-  // Cette méthode récupère toutes les informations de l'utilisateur depuis la base de données
-  // userId: string : ID de l'utilisateur
-  // Promise<any> : Retourne l'utilisateur complet (sans mot de passe)
+  // Je récupère toutes les informations de l'utilisateur depuis la base de données
   async getUserProfile(userId: string): Promise<any> {
-    logger.log(`👤 [AuthService] Récupération du profil utilisateur: ${userId}`);
+    logger.log(`[AuthService] Récupération du profil utilisateur: ${userId}`);
     
     try {
-      // Récupérer l'utilisateur depuis la base de données
       const user = await this.usersService.findById(userId) as UserDocument;
       
       if (!user) {
-        logger.log(`❌ [AuthService] Utilisateur non trouvé: ${userId}`);
+        logger.log(`[AuthService] Utilisateur non trouvé: ${userId}`);
         throw new UnauthorizedException('Utilisateur non trouvé');
       }
 
-      logger.log(`✅ [AuthService] Profil utilisateur récupéré: ${user.email}`);
+      logger.log(`[AuthService] Profil utilisateur récupéré: ${user.email}`);
       
-      // Retourner l'utilisateur (sans le mot de passe)
+      // Je retourne l'utilisateur sans le mot de passe
       const userObj = user.toObject();
       const { password: _, ...result } = userObj;
       return result;
     } catch (error) {
-      logger.error(`❌ [AuthService] Erreur lors de la récupération du profil:`, error);
+      logger.error(`[AuthService] Erreur lors de la récupération du profil:`, error);
       throw error;
     }
   }

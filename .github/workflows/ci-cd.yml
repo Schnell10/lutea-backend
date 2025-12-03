@@ -11,13 +11,11 @@ env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/lutea-backend
 
 jobs:
-  # ==========================================
   # JOB 1: Tests
-  # ==========================================
+
   test:
     name: Tests et Linter
     runs-on: ubuntu-latest
-    # Définir NODE_ENV=test au niveau du job pour qu'il soit disponible dès le début
     env:
       NODE_ENV: test
 
@@ -79,9 +77,8 @@ jobs:
           NODE_ENV: test
         run: npm run test:e2e
 
-  # ==========================================
+
   # JOB 2: Build et Push Docker (seulement si tests OK et sur main/develop)
-  # ==========================================
   build-and-push:
     name: Build et Push Docker
     runs-on: ubuntu-latest
@@ -126,9 +123,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
 
-  # ==========================================
-  # JOB 3: Déclencher redéploiement Render (seulement si Docker Hub OK et sur main)
-  # ==========================================
+  # JOB 3: Déclenche redéploiement Render (seulement si Docker Hub OK et sur main)
   deploy-render:
     name: Déployer sur Render
     runs-on: ubuntu-latest

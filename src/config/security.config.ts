@@ -1,67 +1,56 @@
-// Configuration centralisée de la sécurité pour l'application Lutea
-// Ce fichier regroupe tous les paramètres de sécurité en un seul endroit
+// Configuration centralisée de la sécurité : je regroupe tous les paramètres ici
 
-// Configuration sameSite pour les cookies : 'none' en production (cross-domain), 'strict' en dev
+// Je configure sameSite : 'none' en production (cross-domain), 'strict' en dev
 const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) : ('strict' as const);
 
 export const securityConfig = {
-  // Configuration des JWT (JSON Web Tokens)
   jwt: {
-    accessTokenExpiry: '15m', // Token d'accès : 15 minutes
-    refreshTokenExpiry: '7d', // Token de renouvellement : 7 jours
+    accessTokenExpiry: '15m',
+    refreshTokenExpiry: '7d',
     secret: process.env.JWT_SECRET,
   },
 
-  // Configuration de la sécurité des mots de passe
   password: {
-    minLength: 8,        // Longueur minimale
-    saltRounds: 12,      // Rounds de salage bcrypt
+    minLength: 8,
+    saltRounds: 12,
   },
 
-  // Configuration de la sécurité des connexions
   login: {
-    maxFailedAttempts: 5,    // Maximum de tentatives échouées
-    lockDuration: 15,        // Durée de verrouillage en minutes
-    lockThreshold: 4,        // Tentatives avant verrouillage
+    maxFailedAttempts: 5,
+    lockDuration: 15, // minutes
+    lockThreshold: 4,
   },
 
-  // Configuration de la double authentification (2FA)
   twoFactor: {
-    codeLength: 8,       // Longueur du code de vérification (8 chiffres)
-    codeExpiry: 10,      // Durée de validité en minutes
-    maxAttempts: 5,      // Nombre max d'essais avant invalidation du code
+    codeLength: 8,
+    codeExpiry: 10, // minutes
+    maxAttempts: 5,
   },
 
-  // Configuration du rate limiting pour réinitialisation de mot de passe
   passwordReset: {
-    maxAttempts: 3,      // Maximum de tentatives par heure
-    windowMs: 60 * 60 * 1000, // Fenêtre de temps : 1 heure
-    lockDuration: 24 * 60 * 60 * 1000, // Durée de verrouillage : 24 heures
+    maxAttempts: 3, // par heure
+    windowMs: 60 * 60 * 1000,
+    lockDuration: 24 * 60 * 60 * 1000,
   },
 
-  // Configuration de la limitation de débit (rate limiting)
   rateLimit: {
-    windowMs: 15 * 60 * 1000, // Fenêtre de temps : 15 minutes
-    max: 100,                  // Maximum de requêtes par IP
+    windowMs: 15 * 60 * 1000,
+    max: 100, // requêtes par IP
     message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard',
   },
 
-  // Configuration CORS (Cross-Origin Resource Sharing)
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,    // Permet l'envoi de cookies et d'en-têtes d'authentification
+    credentials: true,
   },
 
-  // Configuration de la sécurité des sessions
   session: {
-    secure: process.env.NODE_ENV === 'production', // Cookies sécurisés en production (HTTPS obligatoire avec sameSite: 'none')
-    httpOnly: true,       // Protection XSS
-    sameSite: sameSiteValue, // Cross-domain en prod (Vercel ↔ Render), strict en dev
+    secure: process.env.NODE_ENV === 'production', // HTTPS obligatoire avec sameSite: 'none'
+    httpOnly: true, // Protection XSS
+    sameSite: sameSiteValue, // Cross-domain en prod (Vercel ↔ Render)
   },
 
-  // Configuration du logging (console.log)
-  // debug: true = Voir tous les logs | debug: false = Masquer les logs
   logging: {
-    debug: true, // Production : masquer les logs sensibles
+    debug: true, // true = voir tous les logs, false = masquer
   },
 };

@@ -60,9 +60,7 @@ describe('RetreatsService - Tests Unitaires', () => {
     jest.clearAllMocks();
   });
 
-  // ==========================================
   // TESTS : Création de retraite
-  // ==========================================
   describe('create()', () => {
     it('OK devrait créer une retraite avec succès', async () => {
       // ARRANGE
@@ -92,9 +90,7 @@ describe('RetreatsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Mise à jour de retraite
-  // ==========================================
   describe('update()', () => {
     it('OK devrait mettre à jour une retraite avec succès', async () => {
       // ARRANGE
@@ -151,9 +147,7 @@ describe('RetreatsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Suppression de retraite
-  // ==========================================
   describe('remove()', () => {
     it('OK devrait supprimer une retraite avec succès', async () => {
       // ARRANGE
@@ -189,9 +183,7 @@ describe('RetreatsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Recherche de retraite par ID
-  // ==========================================
   describe('findById()', () => {
     it('OK devrait trouver une retraite par ID', async () => {
       // ARRANGE
@@ -240,9 +232,7 @@ describe('RetreatsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Liste de toutes les retraites
-  // ==========================================
   describe('findAll()', () => {
     it('OK devrait retourner toutes les retraites', async () => {
       // ARRANGE

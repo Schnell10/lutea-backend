@@ -5,22 +5,19 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 
 /**
- * Stratégie JWT pour valider les tokens d'authentification
- * 
- * Configuration :
- * - Extrait le JWT depuis les cookies (priorité) ou Authorization header
- * - Décode avec la clé secrète JWT_SECRET
- * - Vérifie que l'utilisateur existe encore en base
- * - Retourne les infos utilisateur dans req.user
+ * Stratégie JWT : je valide les tokens d'authentification.
+ * J'extrais le JWT depuis les cookies (priorité) ou Authorization header,
+ * je décode avec JWT_SECRET, je vérifie que l'utilisateur existe encore en base,
+ * et je retourne les infos utilisateur dans req.user.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private configService: ConfigService, //On utilise le configService dans le parent
+    configService: ConfigService,
     private usersService: UsersService,
   ) {
     super({
-      // Extraction du JWT depuis cookies (priorité) ou Authorization header
+      // J'extrais le JWT depuis cookies (priorité) ou Authorization header
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request) => {
           if (request?.cookies?.access_token) {
@@ -37,14 +34,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    // Vérifier que l'utilisateur existe encore en base
+    // Je vérifie que l'utilisateur existe encore en base
     const user = await this.usersService.findById(payload.sub);
-    
     if (!user) {
       throw new UnauthorizedException('Utilisateur non trouvé');
     }
 
-    // Retourner les infos utilisateur pour req.user
+    // Je retourne les infos utilisateur pour req.user
     return {
       sub: user._id,
       email: user.email,

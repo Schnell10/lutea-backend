@@ -12,20 +12,20 @@ export class RetreatsService {
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
   ) {}
 
-  // Récupérer toutes les retraites (pour admin)
+  // Je récupère toutes les retraites (pour admin)
   async findAll(): Promise<Retreat[]> {
     return this.retreatModel.find().sort({ createdAt: -1 }).exec();
   }
 
-  // Récupérer les retraites publiques (pour le frontend)
-  // Utilise le filtrage MongoDB optimisé
+  // Je récupère les retraites publiques (pour le frontend)
+  // J'utilise le filtrage MongoDB optimisé
   async findPublicRetreats(): Promise<Retreat[]> {
     const now = new Date();
     
     // Solution optimisée : MongoDB pour isActive + JS pour les dates
     const retreats = await this.retreatModel.find({ isActive: true }).exec();
     
-    // Filtrage côté JS (plus fiable pour les arrays de dates)
+    // Je filtre côté JS (plus fiable pour les arrays de dates)
     const filteredRetreats = retreats.filter(retreat => {
       // Retraites "à venir" (peuvent avoir ou pas de dates)
       if (retreat.aVenir) {
@@ -40,7 +40,7 @@ export class RetreatsService {
     return filteredRetreats;
   }
 
-  // Récupérer une retraite par ID
+  // Je récupère une retraite par ID
   async findById(id: string): Promise<Retreat> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID de retraite invalide');
@@ -54,13 +54,13 @@ export class RetreatsService {
     return retreat;
   }
 
-  // Créer une nouvelle retraite
+  // Je crée une nouvelle retraite
   async create(createRetreatDto: CreateRetreatDto): Promise<Retreat> {
     const retreat = new this.retreatModel(createRetreatDto);
     return retreat.save();
   }
 
-  // Mettre à jour une retraite
+  // Je mets à jour une retraite
   async update(id: string, updateRetreatDto: UpdateRetreatDto): Promise<Retreat> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID de retraite invalide');
@@ -77,7 +77,7 @@ export class RetreatsService {
     return retreat;
   }
 
-  // Supprimer une retraite
+  // Je supprime une retraite
   async remove(id: string): Promise<void> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID de retraite invalide');
@@ -89,7 +89,7 @@ export class RetreatsService {
     }
   }
 
-  // Activer/désactiver une retraite
+  // J'active/désactive une retraite
   async toggleActive(id: string): Promise<Retreat> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID de retraite invalide');
@@ -104,7 +104,7 @@ export class RetreatsService {
     return retreat.save();
   }
 
-  // Calculer les places réservées pour une retraite à une date spécifique (méthode dynamique)
+  // Je calcule les places réservées pour une retraite à une date spécifique (méthode dynamique)
   async getReservedPlaces(retreatId: string, date?: Date): Promise<number> {
     if (!Types.ObjectId.isValid(retreatId)) {
       throw new BadRequestException('ID de retraite invalide');
@@ -115,7 +115,7 @@ export class RetreatsService {
       throw new NotFoundException('Retraite non trouvée');
     }
 
-    // Si une date est fournie, calculer pour cette date spécifique
+    // Si une date est fournie, je calcule pour cette date spécifique
     if (date) {
       const placesReservees = await this.bookingModel.aggregate([
         {
@@ -145,7 +145,7 @@ export class RetreatsService {
       return placesReservees.length > 0 ? placesReservees[0].totalPlaces : 0;
     }
 
-    // Si pas de date, calculer pour tous les blocs (pour l'admin)
+    // Si pas de date, je calcule pour tous les blocs (pour l'admin)
     let totalPlacesReservees = 0;
 
     for (const dateBlock of retreat.dates) {
@@ -181,7 +181,7 @@ export class RetreatsService {
     return totalPlacesReservees;
   }
 
-  // Rechercher des retraites par critères (pour admin)
+  // Je recherche des retraites par critères (pour admin)
   async searchRetreats(criteria: any): Promise<Retreat[]> {
     const query: any = {};
 

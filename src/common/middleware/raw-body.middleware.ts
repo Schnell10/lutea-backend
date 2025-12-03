@@ -3,56 +3,34 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
 /**
- * Middleware pour capturer le corps brut des requêtes webhook Stripe
- * 
- * PROBLÈME : Stripe envoie des webhooks avec une signature cryptographique
- * Pour vérifier cette signature, Stripe a besoin du corps brut de la requête
- * Mais Express parse automatiquement le JSON, ce qui casse la signature
- * 
- * SOLUTION : Ce middleware capture le corps avant que Express le parse
- * et le stocke dans req.rawBody pour les webhooks Stripe uniquement
+ * Middleware pour capturer le corps brut des requêtes webhook Stripe.
+ * NestJS parse automatiquement le JSON, ce qui casse la signature cryptographique de Stripe.
+ * Je capture donc le corps avant le parsing et le stocke dans req.rawBody.
  */
 @Injectable()
 export class RawBodyMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    logger.log('🔧 [Middleware] RawBodyMiddleware appliqué sur:', req.originalUrl);
-    
-    // Vérifier si c'est la route webhook Stripe
+    // Je ne capture le raw body que pour les webhooks Stripe
     if (req.originalUrl === '/stripe/webhook') {
-      logger.log('🔧 [Middleware] Capture du raw body pour webhook Stripe');
-      
-      // Définir l'encodage UTF-8 pour lire les données texte
       req.setEncoding('utf8');
-      
-      // Variable pour accumuler les données du corps
       let data = '';
       
-      // Événement 'data' : appelé à chaque chunk de données reçu
+      // J'accumule les chunks pour reconstituer le corps complet
       req.on('data', (chunk) => {
-        logger.log('🔧 [Middleware] Chunk reçu, taille:', chunk.length);
-        // Accumuler les chunks pour reconstituer le corps complet
         data += chunk;
       });
       
-      // Événement 'end' : appelé quand toutes les données sont reçues
+      // Quand toutes les données sont reçues, je stocke le raw body
       req.on('end', () => {
-        // Stocker le corps brut dans req.rawBody pour Stripe
         (req as any).rawBody = data;
-        logger.log('🔧 [Middleware] Raw body capturé, longueur:', data.length);
-        logger.log('🔧 [Middleware] Premiers caractères:', data.substring(0, 100));
-        
-        // Continuer vers le contrôleur Stripe
         next();
       });
       
-      // Événement 'error' : gérer les erreurs de lecture
       req.on('error', (err) => {
-        logger.error('🔧 [Middleware] Erreur lors de la capture:', err);
-        // Passer l'erreur au middleware suivant
+        logger.error('Erreur lors de la capture du raw body:', err);
         next(err);
       });
     } else {
-      // Pour toutes les autres routes, ne rien faire et continuer
       next();
     }
   }

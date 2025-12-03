@@ -28,12 +28,10 @@ import type { Response } from 'express';
 import { logger } from '../../common/utils/logger';
 
 /**
- * Contrôleur de réservations
- * 
- * Gère toutes les opérations liées aux bookings (réservations de retraites)
- * - Routes client : création, consultation, annulation
- * - Routes admin : gestion, statistiques, confirmations
- * - Routes publiques : vérification disponibilité
+ * Je gère toutes les opérations liées aux bookings (réservations de retraites)
+ * - Routes client : je gère la création, consultation, annulation
+ * - Routes admin : je gère la gestion, statistiques, confirmations
+ * - Routes publiques : je vérifie la disponibilité
  */
 @Controller('bookings')
 export class BookingsController {
@@ -45,10 +43,10 @@ export class BookingsController {
     private readonly pdfGeneratorService: PdfGeneratorService
   ) {}
 
-  // Méthode pour extraire l'utilisateur depuis les cookies (optionnel)
+  // J'extrais l'utilisateur depuis les cookies (optionnel)
   private extractUserFromCookies(req: any): { userId: string | null; isGuest: boolean } {
     try {
-      // Extraire le token depuis les cookies
+      // J'extrais le token depuis les cookies
       const accessToken = req.cookies?.access_token;
       
       if (!accessToken) {
@@ -56,7 +54,7 @@ export class BookingsController {
         return { userId: null, isGuest: true };
       }
 
-      // Décoder le token JWT
+      // Je décode le token JWT
       const payload = this.jwtService.verify(accessToken, {
         secret: this.configService.get<string>('JWT_SECRET')
       });
@@ -79,7 +77,7 @@ export class BookingsController {
 
   // ROUTES CLIENT (sécurisées)
 
-  // Vérifier les places disponibles (sans authentification pour le tunnel de paiement)
+  // Je vérifie les places disponibles (sans authentification pour le tunnel de paiement)
   @Post('available-places')
   @HttpCode(HttpStatus.OK)
   async getAvailablePlaces(
@@ -110,7 +108,7 @@ export class BookingsController {
     logger.log('🔐 [AUTH] Tous les headers:', req.headers);
     logger.log('🔐 [AUTH] ================================================');
     
-    // Extrait l'utilisateur depuis les cookies (optionnel)
+    // J'extrais l'utilisateur depuis les cookies (optionnel)
     const { userId, isGuest } = this.extractUserFromCookies(req);
     
     logger.log('📝 [BOOKING] Création d\'un booking...', {
@@ -137,7 +135,7 @@ export class BookingsController {
   async getBooking(@Param('id') id: string, @Request() req: any) {
     const booking = await this.bookingsService.findById(id);
     
-    // Vérification propriétaire : seul le propriétaire peut voir sa réservation
+    // Je vérifie que seul le propriétaire peut voir sa réservation
     if (booking.userId.toString() !== req.user.sub) {
       throw new Error('Accès non autorisé à ce booking');
     }
@@ -153,25 +151,25 @@ export class BookingsController {
     @Res() res: Response
   ) {
     try {
-      // Récupérer la réservation avec les données de la retraite
+      // Je récupère la réservation avec les données de la retraite
       const booking = await this.bookingsService.findByIdWithRetreat(id);
       
-      // Vérification propriétaire : seul le propriétaire peut télécharger sa réservation
+      // Je vérifie que seul le propriétaire peut télécharger sa réservation
       if (booking.userId.toString() !== req.user.sub.toString()) {
         throw new Error('Accès non autorisé à ce booking');
       }
 
-      // Générer le PDF
+      // Je génère le PDF
       const pdfBuffer = await this.pdfGeneratorService.generateConfirmationPdf(booking);
 
-      // Configurer les headers pour le téléchargement
+      // Je configure les headers pour le téléchargement
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="confirmation-${(booking.retreatName || 'retraite').replace(/\s+/g, '-').toLowerCase()}-${new Date(booking.dateStart).toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf"`,
         'Content-Length': pdfBuffer.length.toString(),
       });
 
-      // Envoyer le PDF
+      // J'envoie le PDF
       res.send(pdfBuffer);
     } catch (error) {
       logger.error('Erreur lors de la génération du PDF:', error);
@@ -257,7 +255,7 @@ export class BookingsController {
     const discrepancies = await this.bookingsService.checkPaymentDiscrepancies();
     
     if (discrepancies.summary.totalDiscrepancies > 0) {
-      // Alerte email automatique si incohérences de paiement détectées
+      // J'envoie une alerte email automatique si incohérences de paiement détectées
       const alertMessage = `
         🚨 ALERTE - Incohérences de paiement détectées
         
@@ -285,7 +283,7 @@ export class BookingsController {
     };
   }
 
-  // Annuler un booking (admin seulement)
+  // J'annule un booking (admin seulement)
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Patch('admin/:id/cancel')
   async cancelBookingByAdmin(
@@ -295,7 +293,7 @@ export class BookingsController {
     return this.bookingsService.cancelBooking(id, cancelBookingDto.raison);
   }
 
-  // Créer un booking manuellement (admin seulement)
+  // Je crée un booking manuellement (admin seulement)
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('admin/create')
   @HttpCode(HttpStatus.CREATED)

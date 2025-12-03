@@ -70,9 +70,7 @@ describe('BookingsService - Tests Unitaires', () => {
     jest.clearAllMocks();
   });
 
-  // ==========================================
   // TESTS : Calcul des places disponibles
-  // ==========================================
   describe('getAvailablePlaces()', () => {
     it('OK devrait calculer correctement les places disponibles', async () => {
       // ARRANGE
@@ -142,9 +140,7 @@ describe('BookingsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Statistiques des réservations
-  // ==========================================
   describe('getStats()', () => {
     it('OK devrait calculer les statistiques correctement', async () => {
       // ARRANGE
@@ -169,9 +165,7 @@ describe('BookingsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Recherche de réservation par ID
-  // ==========================================
   describe('findById()', () => {
     it('OK devrait trouver une réservation par ID', async () => {
       // ARRANGE
@@ -212,9 +206,7 @@ describe('BookingsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Annulation de réservation
-  // ==========================================
   describe('cancelBooking()', () => {
     it('OK devrait annuler une réservation avec succès', async () => {
       // ARRANGE
@@ -247,9 +239,7 @@ describe('BookingsService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Recherche des réservations utilisateur
-  // ==========================================
   describe('findUserBookings()', () => {
     it('OK devrait retourner toutes les réservations d\'un utilisateur', async () => {
       // ARRANGE

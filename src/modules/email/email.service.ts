@@ -37,10 +37,10 @@ export class EmailService {
         `
       });
 
-      logger.log(`✅ [EmailService] Code 2FA envoyé à: ${email}`);
+      logger.log(`[EmailService] Code 2FA envoyé à: ${email}`);
       return true;
     } catch (error) {
-      logger.log(`❌ [EmailService] Erreur envoi code 2FA à: ${email}`, error.message);
+      logger.log(`[EmailService] Erreur envoi code 2FA à: ${email}`, error.message);
       return false;
     }
   }
@@ -71,11 +71,11 @@ export class EmailService {
         `,
       });
       
-      this.logger.log(`✅ Email de validation envoyé avec succès à ${email}`);
+      this.logger.log(`Email de validation envoyé avec succès à ${email}`);
       return true;
       
     } catch (error) {
-      this.logger.error(`❌ Erreur lors de l'envoi de l'email de validation à ${email}:`, error);
+      this.logger.error(`Erreur lors de l'envoi de l'email de validation à ${email}:`, error);
       return false;
     }
   }
@@ -107,11 +107,11 @@ export class EmailService {
         `,
       });
       
-      this.logger.log(`✅ Email de réinitialisation envoyé avec succès à ${email}`);
+      this.logger.log(`Email de réinitialisation envoyé avec succès à ${email}`);
       return true;
       
     } catch (error) {
-      this.logger.error(`❌ Erreur lors de l'envoi de l'email de réinitialisation à ${email}:`, error);
+      this.logger.error(`Erreur lors de l'envoi de l'email de réinitialisation à ${email}:`, error);
       return false;
     }
   }
@@ -122,11 +122,11 @@ export class EmailService {
       const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
       
       if (!recaptchaSecret) {
-        this.logger.error('❌ [verifyRecaptcha] RECAPTCHA_SECRET_KEY manquante dans .env');
+        this.logger.error('[verifyRecaptcha] RECAPTCHA_SECRET_KEY manquante dans .env');
         return false;
       }
 
-      this.logger.log(`🔍 [verifyRecaptcha] Appel à l'API Google reCAPTCHA...`);
+      this.logger.log(`[verifyRecaptcha] Appel à l'API Google reCAPTCHA...`);
       const verifyResponse = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -134,18 +134,18 @@ export class EmailService {
       });
 
       const recaptchaData = await verifyResponse.json();
-      this.logger.log(`📊 [verifyRecaptcha] Réponse Google: ${JSON.stringify(recaptchaData)}`);
+      this.logger.log(`[verifyRecaptcha] Réponse Google: ${JSON.stringify(recaptchaData)}`);
 
       // Si la vérification échoue ou score trop faible → rejet
       if (!recaptchaData.success || (recaptchaData.score && recaptchaData.score < 0.5)) {
-        this.logger.warn(`⚠️ [verifyRecaptcha] Échec de la vérification reCAPTCHA: ${JSON.stringify(recaptchaData)}`);
+        this.logger.warn(`[verifyRecaptcha] Échec de la vérification reCAPTCHA: ${JSON.stringify(recaptchaData)}`);
         return false;
       }
 
-      this.logger.log(`✅ [verifyRecaptcha] reCAPTCHA validé avec succès (score: ${recaptchaData.score || 'N/A'})`);
+      this.logger.log(`[verifyRecaptcha] reCAPTCHA validé avec succès (score: ${recaptchaData.score || 'N/A'})`);
       return true;
     } catch (error) {
-      this.logger.error('❌ Erreur lors de la vérification reCAPTCHA:', error);
+      this.logger.error('Erreur lors de la vérification reCAPTCHA:', error);
       return false;
     }
   }
@@ -162,15 +162,15 @@ export class EmailService {
     try {
       // Vérification reCAPTCHA si un token est fourni
       if (contactData.token) {
-        this.logger.log(`🔒 [sendContactEmail] Token reCAPTCHA reçu, vérification en cours...`);
+        this.logger.log(`[sendContactEmail] Token reCAPTCHA reçu, vérification en cours...`);
         const isRecaptchaValid = await this.verifyRecaptcha(contactData.token);
         if (!isRecaptchaValid) {
-          this.logger.error('❌ [sendContactEmail] Échec de la vérification reCAPTCHA pour le formulaire de contact');
+          this.logger.error('[sendContactEmail] Échec de la vérification reCAPTCHA pour le formulaire de contact');
           return false;
         }
-        this.logger.log('✅ [sendContactEmail] reCAPTCHA validé, envoi de l\'email...');
+        this.logger.log('[sendContactEmail] reCAPTCHA validé, envoi de l\'email...');
       } else {
-        this.logger.warn('⚠️ [sendContactEmail] Aucun token reCAPTCHA fourni pour le formulaire de contact');
+        this.logger.warn('[sendContactEmail] Aucun token reCAPTCHA fourni pour le formulaire de contact');
       }
       await this.resend.emails.send({
         from: luteaConfig.emails.resend,
@@ -202,18 +202,18 @@ export class EmailService {
         `,
       });
       
-      this.logger.log(`✅ Email de contact envoyé avec succès depuis ${contactData.email}`);
+      this.logger.log(`Email de contact envoyé avec succès depuis ${contactData.email}`);
       return true;
       
     } catch (error) {
-      this.logger.error(`❌ Erreur lors de l'envoi de l'email de contact depuis ${contactData.email}:`, error);
+      this.logger.error(`Erreur lors de l'envoi de l'email de contact depuis ${contactData.email}:`, error);
       return false;
     }
   }
 
   // ENVOI D'ALERTE ADMIN
   async sendAdminAlert(subject: string, message: string): Promise<boolean> {
-    logger.log(`📧 [EmailService] Envoi d'alerte admin à: ${luteaConfig.emails.admin}`);
+    logger.log(`[EmailService] Envoi d'alerte admin à: ${luteaConfig.emails.admin}`);
     
     try {
       const result = await this.resend.emails.send({
@@ -233,10 +233,10 @@ export class EmailService {
         `
       });
 
-      logger.log(`✅ [EmailService] Alerte admin envoyée avec succès: ${result.data?.id || 'N/A'}`);
+      logger.log(`[EmailService] Alerte admin envoyée avec succès: ${result.data?.id || 'N/A'}`);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur lors de l'envoi de l'alerte admin à ${luteaConfig.emails.admin}:`, error);
+      this.logger.error(`Erreur lors de l'envoi de l'alerte admin à ${luteaConfig.emails.admin}:`, error);
       return false;
     }
   }
@@ -246,11 +246,11 @@ export class EmailService {
     const clientEmail = bookingData.participants[0]?.email;
     
     if (!clientEmail) {
-      logger.error('❌ [EmailService] Aucun email client trouvé pour l\'envoi de confirmation');
+      logger.error('[EmailService] Aucun email client trouvé pour l\'envoi de confirmation');
       return false;
     }
 
-    logger.log(`📧 [EmailService] Envoi de confirmation de réservation à: ${clientEmail}`);
+    logger.log(`[EmailService] Envoi de confirmation de réservation à: ${clientEmail}`);
     
     try {
       const result = await this.resend.emails.send({
@@ -292,10 +292,10 @@ export class EmailService {
         ]
       });
 
-      logger.log(`✅ [EmailService] Confirmation de réservation envoyée avec succès: ${result.data?.id || 'N/A'}`);
+      logger.log(`[EmailService] Confirmation de réservation envoyée avec succès: ${result.data?.id || 'N/A'}`);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur lors de l'envoi de la confirmation de réservation à ${clientEmail}:`, error);
+      this.logger.error(`Erreur lors de l'envoi de la confirmation de réservation à ${clientEmail}:`, error);
       return false;
     }
   }

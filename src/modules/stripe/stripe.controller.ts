@@ -21,24 +21,24 @@ export class StripeController {
     private readonly bookingsService: BookingsService,
   ) {}
 
-  // Créer un PaymentIntent (sans authentification requise)
+  // Je crée un PaymentIntent (sans authentification requise)
   @Post('create-payment-intent')
   @HttpCode(HttpStatus.OK)
   async createPaymentIntent(@Body() createPaymentIntentDto: CreatePaymentIntentDto) {
     const { amount, currency, metadata } = createPaymentIntentDto;
     
-    logger.log('🚀 [Stripe] Création du PaymentIntent...', { amount, currency, metadata });
+    logger.log('[Stripe] Création du PaymentIntent...', { amount, currency, metadata });
     
     const paymentIntent = await this.stripeService.createPaymentIntent(amount, currency, metadata);
     
-    // Retourner seulement les données nécessaires pour le frontend
+    // Je retourne seulement les données nécessaires pour le frontend
     return {
       clientSecret: paymentIntent.client_secret,
       id: paymentIntent.id
     };
   }
 
-  // Récupérer un PaymentIntent
+  // Je récupère un PaymentIntent
   @UseGuards(JwtAuthGuard)
   @Post('get-payment-intent')
   @HttpCode(HttpStatus.OK)
@@ -47,14 +47,14 @@ export class StripeController {
     return this.stripeService.getPaymentIntent(paymentIntentId);
   }
 
-  // Annuler un PaymentIntent (sans authentification pour le tunnel de paiement)
+  // J'annule un PaymentIntent (sans authentification pour le tunnel de paiement)
   @Post('cancel-payment-intent')
   @HttpCode(HttpStatus.OK)
   async cancelPaymentIntent(
     @Body() body: { paymentIntentId: string }
   ): Promise<{ success: boolean; message: string }> {
     try {
-      logger.log('🚫 [Stripe] Annulation du PaymentIntent:', body.paymentIntentId);
+      logger.log('[Stripe] Annulation du PaymentIntent:', body.paymentIntentId);
       
       await this.stripeService.cancelPaymentIntent(body.paymentIntentId);
       
@@ -63,7 +63,7 @@ export class StripeController {
         message: 'PaymentIntent annulé avec succès'
       };
     } catch (error) {
-      logger.error('❌ [Stripe] Erreur lors de l\'annulation:', error.message);
+      logger.error('[Stripe] Erreur lors de l\'annulation:', error.message);
       return {
         success: false,
         message: `Erreur lors de l'annulation: ${error.message}`
@@ -71,14 +71,14 @@ export class StripeController {
     }
   }
 
-  // Webhook Stripe (pas d'authentification requise)
+  // Je gère le webhook Stripe (pas d'authentification requise)
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
     @Req() req: any,
     @Headers('stripe-signature') signature: string
   ): Promise<{ received: boolean }> {
-    logger.log('🔔 [Webhook] Réception webhook...', { 
+    logger.log('[Webhook] Réception webhook...', { 
       hasBody: !!req.body, 
       hasSignature: !!signature,
       bodyType: typeof req.body,
@@ -86,7 +86,7 @@ export class StripeController {
     });
     
     if (!signature) {
-      logger.log('⚠️ [Webhook] Signature manquante, requête ignorée');
+      logger.log('[Webhook] Signature manquante, requête ignorée');
       return { received: false };
     }
 
@@ -94,16 +94,16 @@ export class StripeController {
     const payload = req.body;
     
     if (!payload) {
-      logger.error('❌ [Webhook] Body manquant');
+      logger.error('[Webhook] Body manquant');
       return { received: false };
     }
 
     try {
       await this.stripeService.handleWebhook(payload, signature);
-      logger.log('✅ [Webhook] Webhook traité avec succès');
+      logger.log('[Webhook] Webhook traité avec succès');
       return { received: true };
     } catch (error) {
-      logger.error('❌ [Webhook] Erreur lors du traitement:', error.message);
+      logger.error('[Webhook] Erreur lors du traitement:', error.message);
       return { received: false };
     }
   }

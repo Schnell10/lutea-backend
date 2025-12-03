@@ -79,9 +79,7 @@ describe('UsersService - Tests Unitaires', () => {
     jest.clearAllMocks();
   });
 
-  // ==========================================
   // TESTS : Préparation de l'inscription
-  // ==========================================
   describe('prepareRegistration()', () => {
     it('OK devrait créer un utilisateur temporaire et envoyer un email', async () => {
       // ARRANGE
@@ -141,9 +139,7 @@ describe('UsersService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Création de compte après validation
-  // ==========================================
   describe('createAccountAfterEmailValidation()', () => {
     it('OK devrait créer un compte permanent après validation', async () => {
       // ARRANGE
@@ -219,9 +215,7 @@ describe('UsersService - Tests Unitaires', () => {
     });
   });
 
-  // ==========================================
   // TESTS : Recherche d'utilisateur par email
-  // ==========================================
   describe('findByEmail()', () => {
     it('OK devrait trouver un utilisateur par email', async () => {
       // ARRANGE

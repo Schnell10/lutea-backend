@@ -18,16 +18,16 @@ export class AnalyticsService {
     private eventTypeRepository: Repository<EventType>,
   ) {}
 
-  // Créer une nouvelle session
+  // Je crée une nouvelle session
   async createSession(createSessionDto: CreateSessionDto): Promise<Session> {
     try {
-      // Vérifier si la session existe déjà (évite les duplications)
+      // Je vérifie si la session existe déjà (évite les duplications)
       const existingSession = await this.sessionRepository.findOne({
         where: { session_id: createSessionDto.session_id }
       });
 
       if (existingSession) {
-        logger.log(`✅ [Analytics] Session existante trouvée: ${existingSession.session_id}`);
+        logger.log(`[Analytics] Session existante trouvée: ${existingSession.session_id}`);
         return existingSession;
       }
 
@@ -40,12 +40,12 @@ export class AnalyticsService {
       });
 
       const savedSession = await this.sessionRepository.save(session);
-      logger.log(`✅ [Analytics] Session créée: ${savedSession.session_id}`);
+      logger.log(`[Analytics] Session créée: ${savedSession.session_id}`);
       return savedSession;
     } catch (error) {
-      // Si c'est une erreur de duplication (ER_DUP_ENTRY), récupérer la session existante
+      // Si erreur de duplication (race condition), je récupère la session existante
       if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
-        logger.warn(`⚠️ [Analytics] Session ${createSessionDto.session_id} existe déjà (race condition), récupération...`);
+        logger.warn(`[Analytics] Session ${createSessionDto.session_id} existe déjà (race condition), récupération...`);
         const existingSession = await this.sessionRepository.findOne({
           where: { session_id: createSessionDto.session_id }
         });
@@ -53,12 +53,12 @@ export class AnalyticsService {
           return existingSession;
         }
       }
-      logger.error('❌ [Analytics] Erreur création session:', error);
+      logger.error('[Analytics] Erreur création session:', error);
       throw error;
     }
   }
 
-  // Mettre à jour une session (fin de session)
+  // Je mets à jour une session (fin de session)
   async updateSession(sessionId: string, updateSessionDto: UpdateSessionDto): Promise<Session> {
     try {
       const session = await this.sessionRepository.findOne({ 
@@ -73,41 +73,33 @@ export class AnalyticsService {
         const endedAt = new Date(updateSessionDto.ended_at);
         session.ended_at = endedAt;
         
-        // Calculer la durée de la session
+        // Je calcule la durée de la session
         const duration = Math.round((endedAt.getTime() - session.started_at.getTime()) / 1000); // en secondes
         const minutes = Math.floor(duration / 60);
         const seconds = duration % 60;
         
-        logger.log(`✅ [Analytics] Session expirée: ${sessionId} (${minutes}m ${seconds}s)`);
+        logger.log(`[Analytics] Session expirée: ${sessionId} (${minutes}m ${seconds}s)`);
       }
 
-      // Mettre à jour le statut de connexion si fourni
-      // IMPORTANT : On ne met à jour que si on passe de false à true
-      // Une fois à true, on ne revient jamais à false (même si l'utilisateur se déconnecte)
-      // Cela permet de savoir si l'utilisateur s'est connecté à un moment donné pendant la session
+      // Je mets à jour is_login uniquement si on passe de false à true (une fois à true, ça reste)
       if (updateSessionDto.is_login !== undefined) {
         const previousStatus = session.is_login;
         
-        // Ne mettre à jour que si on passe de false à true
-        // Si déjà à true, on ne change rien
         if (updateSessionDto.is_login === true && previousStatus === false) {
           session.is_login = true;
-          logger.log(`✅ [Analytics] Utilisateur connecté pendant la session`);
+          logger.log(`[Analytics] Utilisateur connecté pendant la session`);
         }
-        // Si déjà à true, on ne change rien (pas de log)
       }
-
-      // Pas de log pour les mises à jour mineures
 
       const updatedSession = await this.sessionRepository.save(session);
       return updatedSession;
     } catch (error) {
-      logger.error('❌ [Analytics] Erreur mise à jour session:', error);
+      logger.error('[Analytics] Erreur mise à jour session:', error);
       throw error;
     }
   }
 
-  // Supprimer une session (et ses événements via CASCADE)
+  // Je supprime une session (les événements seront supprimés automatiquement via CASCADE)
   async deleteSession(sessionId: string): Promise<void> {
     try {
       const session = await this.sessionRepository.findOne({ 
@@ -115,20 +107,19 @@ export class AnalyticsService {
       });
 
       if (!session) {
-        logger.warn(`⚠️ [Analytics] Session ${sessionId} non trouvée pour suppression`);
+        logger.warn(`[Analytics] Session ${sessionId} non trouvée pour suppression`);
         return;
       }
 
-      // Supprimer la session (les événements seront supprimés automatiquement via CASCADE)
       await this.sessionRepository.remove(session);
-      logger.log(`✅ [Analytics] Session supprimée: ${sessionId} (admin détecté)`);
+      logger.log(`[Analytics] Session supprimée: ${sessionId} (admin détecté)`);
     } catch (error) {
-      logger.error('❌ [Analytics] Erreur suppression session:', error);
+      logger.error('[Analytics] Erreur suppression session:', error);
       throw error;
     }
   }
 
-  // Crée un événement utilisateur
+  // Je crée un événement utilisateur
   async createUserEvent(createUserEventDto: CreateUserEventDto): Promise<UserEvent> {
     // Je vérifie que le type d'événement existe
     const eventType = await this.eventTypeRepository.findOne({
@@ -178,16 +169,13 @@ export class AnalyticsService {
     return savedEvent;
   }
 
-  // Récupérer les statistiques complètes
+  // Je récupère les statistiques complètes
   async getStats(): Promise<any> {
     try {
       const totalSessions = await this.sessionRepository.count();
       const totalEvents = await this.userEventRepository.count();
 
-      // ============================================
-      // 1. Taux de rebond
-      // ============================================
-      // Pour utiliser les colonnes dans HAVING, on doit les inclure dans le SELECT
+      // Je calcule le taux de rebond
       const bounceSessionsResult = await this.sessionRepository
         .createQueryBuilder('session')
         .select('session.session_id', 'session_id')
@@ -205,9 +193,7 @@ export class AnalyticsService {
 
       const bounceRate = totalSessions > 0 ? (bounceSessions / totalSessions) * 100 : 0;
 
-      // ============================================
-      // 2. Taux de conversion global
-      // ============================================
+      // Je calcule le taux de conversion global
       const funnelStarted = await this.userEventRepository.count({
         where: { code_EventType: 'booking_funnel_started' }
       });
@@ -218,10 +204,7 @@ export class AnalyticsService {
 
       const conversionRate = funnelStarted > 0 ? (paymentSucceeded / funnelStarted) * 100 : 0;
 
-      // ============================================
-      // 3. Tunnel de réservation - Analyse par session
-      // ============================================
-      // Récupérer toutes les sessions qui ont commencé le tunnel
+      // Je analyse le tunnel de réservation par session
       const sessionsWithFunnelStarted = await this.userEventRepository
         .createQueryBuilder('event')
         .select('DISTINCT event.session_id_Session', 'session_id')
@@ -230,30 +213,30 @@ export class AnalyticsService {
 
       const sessionIds = sessionsWithFunnelStarted.map(s => s.session_id);
       
-      // Pour chaque session, analyser son parcours
+      // Pour chaque session, j'analyse son parcours
       const sessionAnalyses: Array<{
         sessionId: string;
         completed: boolean;
         lastStep: number;
-        stepTimes: Record<number, number>; // Temps total passé sur chaque étape
-        exitStep?: number; // Étape à laquelle la session a quitté (si abandon)
+        stepTimes: Record<number, number>; 
+        exitStep?: number;
       }> = [];
 
       for (const sessionId of sessionIds) {
-        // Récupérer tous les événements de cette session dans l'ordre chronologique
+        // Je récupère tous les événements de cette session dans l'ordre chronologique
         const sessionEvents = await this.userEventRepository.find({
           where: { session_id_Session: sessionId },
           order: { event_ts: 'ASC' }
         });
 
-        // Déterminer si complété
+        // Je détermine si complété
         const hasPaymentSucceeded = sessionEvents.some(e => e.code_EventType === 'payment_succeeded');
         
-        // Trouver la dernière étape atteinte
+        // Je trouve la dernière étape atteinte
         let lastStep = 0;
         const stepTimes: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         
-        // Tous les événements liés au tunnel (steps, payment, abandon)
+        // Je filtre tous les événements liés au tunnel
         const tunnelEvents = sessionEvents.filter(e => 
           e.code_EventType.startsWith('booking_step_') || 
           e.code_EventType === 'payment_succeeded' ||
@@ -262,10 +245,9 @@ export class AnalyticsService {
         );
 
         // Si une session a commencé le tunnel, elle a au moins atteint l'étape 1
-        // Même si elle n'a pas d'événement booking_step_1 explicite
         lastStep = 1;
 
-        // Trouver toutes les étapes visitées et calculer le temps passé
+        // Je trouve toutes les étapes visitées
         const eventsByStep: Record<number, Array<{ ts: Date; type: string }>> = {};
         
         tunnelEvents.forEach(event => {
@@ -277,9 +259,7 @@ export class AnalyticsService {
           }
         });
 
-        // Calculer le temps passé sur chaque étape
-        // On calcule le temps entre l'arrivée sur une étape et le passage à l'étape suivante
-        // Seulement pour les sessions qui passent effectivement à l'étape suivante
+        // Je calcule le temps passé sur chaque étape (entre l'arrivée et le passage à l'étape suivante)
         for (let step = 1; step <= 5; step++) {
           const stepEvents = eventsByStep[step] || [];
           if (stepEvents.length === 0) {
@@ -287,13 +267,8 @@ export class AnalyticsService {
             continue;
           }
 
-          // Trier les événements de cette étape par timestamp
           stepEvents.sort((a, b) => a.ts.getTime() - b.ts.getTime());
-          
-          // Trouver le premier événement de cette étape
           const firstStepEvent = stepEvents[0].ts;
-          
-          // Trouver le premier événement de l'étape suivante (si elle existe)
           let nextStepEvent: Date | null = null;
           
           if (step < 5) {
@@ -303,8 +278,7 @@ export class AnalyticsService {
               nextStepEvent = nextStepEvents[0].ts;
             }
           } else {
-            // Pour l'étape 5, on cherche payment_succeeded (le succès du paiement)
-            // On cherche le premier événement payment_succeeded qui vient après le premier événement de l'étape 5
+            // Pour l'étape 5, je cherche payment_succeeded
             const paymentSucceededEvents = tunnelEvents
               .filter(e => e.code_EventType === 'payment_succeeded')
               .filter(e => e.event_ts > firstStepEvent)
@@ -315,24 +289,20 @@ export class AnalyticsService {
             }
           }
           
-          // Si on a trouvé l'événement de l'étape suivante, calculer le temps
           if (nextStepEvent && nextStepEvent > firstStepEvent) {
-            const timeDiff = Math.round((nextStepEvent.getTime() - firstStepEvent.getTime()) / 1000); // en secondes
+            const timeDiff = Math.round((nextStepEvent.getTime() - firstStepEvent.getTime()) / 1000);
             stepTimes[step] = timeDiff;
           } else {
-            // Pas de passage à l'étape suivante, on ne peut pas calculer le temps
             stepTimes[step] = 0;
           }
         }
 
-        // Trouver l'étape de sortie
-        // Soit explicitement (booking_abandoned), soit implicitement (dernière étape atteinte sans aller plus loin)
+        // Je trouve l'étape de sortie (explicite ou implicite)
         let exitStep: number | undefined;
         const abandonedEvent = sessionEvents.find(e => e.code_EventType === 'booking_abandoned');
         if (abandonedEvent) {
           exitStep = abandonedEvent.event_data?.step || lastStep;
         } else if (!hasPaymentSucceeded) {
-          // Si pas complété et pas d'abandon explicite, la sortie est à la dernière étape atteinte
           exitStep = lastStep;
         }
 
@@ -345,21 +315,17 @@ export class AnalyticsService {
         });
       }
 
-      // Compter les sessions par étape atteinte
+      // Je compte les sessions par étape atteinte
       const sessionsByStep: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
       sessionAnalyses.forEach(analysis => {
-        // Toutes les sessions qui ont commencé ont au moins atteint l'étape 1
         sessionsByStep[1]++;
-        
-        // Compter les sessions qui ont atteint les autres étapes
         for (let step = 2; step <= analysis.lastStep; step++) {
           sessionsByStep[step]++;
         }
       });
 
-      // Calculer les sorties de manière logique : différence entre sessions par étape
-      // Sorties à l'étape N = sessions[N] - sessions[N+1]
+      // Je calcule les sorties : différence entre sessions par étape
       const exitByStep: Record<number, number> = {};
       for (let step = 1; step <= 5; step++) {
         const sessionsAtStep = sessionsByStep[step] || 0;
@@ -374,7 +340,7 @@ export class AnalyticsService {
       const reachedStep5 = sessionsByStep[5] || 0; // Nombre de sessions arrivées à l'étape 5
       const completionRate = totalStarted > 0 ? Math.round((reachedStep5 / totalStarted) * 10000) / 100 : 0;
 
-      // Calculer les temps moyens par étape (basés sur les sessions)
+      // Je calcule les temps moyens par étape
       const averageTimeByStep: Record<number, number> = {};
       for (let step = 1; step <= 5; step++) {
         const times = sessionAnalyses
@@ -389,8 +355,7 @@ export class AnalyticsService {
         }
       }
 
-      // Statistiques Stripe (paiements)
-      // Compter les sessions distinctes (pas les événements) pour éviter les doublons
+      // Je calcule les statistiques Stripe (sessions distinctes pour éviter les doublons)
       const paymentSucceededSessions = await this.userEventRepository
         .createQueryBuilder('event')
         .select('DISTINCT event.session_id_Session', 'session_id')
@@ -420,7 +385,7 @@ export class AnalyticsService {
         ? Math.round((paymentFailedCount / totalPaymentAttempts) * 10000) / 100 
         : 0;
 
-      // Taux de conversion entre l'étape 5 et le clic sur "Payer"
+      // Je calcule le taux de conversion entre l'étape 5 et le clic sur "Payer"
       const step5ToButtonClickRate = reachedStep5 > 0 
         ? Math.round((paymentButtonClickedCount / reachedStep5) * 10000) / 100 
         : 0;
@@ -435,7 +400,7 @@ export class AnalyticsService {
         step5ToButtonClickRate, // % de personnes arrivées à l'étape 5 qui ont cliqué sur "Payer"
       };
 
-      // Calculer les pourcentages par rapport au nombre total de sessions qui ont commencé
+      // Je calcule les pourcentages par rapport au nombre total de sessions qui ont commencé
       const stepPercentages = {
         step1: totalStarted > 0 ? Math.round((sessionsByStep[1] / totalStarted) * 10000) / 100 : 0,
         step2: totalStarted > 0 ? Math.round((sessionsByStep[2] / totalStarted) * 10000) / 100 : 0,
@@ -444,7 +409,7 @@ export class AnalyticsService {
         step5: totalStarted > 0 ? Math.round((sessionsByStep[5] / totalStarted) * 10000) / 100 : 0,
       };
 
-      // Calculer les pourcentages pour les sorties par étape
+      // Je calcule les pourcentages pour les sorties par étape
       const totalExits = Object.values(exitByStep).reduce((sum, count) => sum + count, 0);
       const exitByStepWithPercentages: Record<number, { count: number; percentage: number }> = {};
       Object.entries(exitByStep).forEach(([step, count]) => {
@@ -454,7 +419,7 @@ export class AnalyticsService {
         };
       });
 
-      // Calculer aussi les taux de conversion entre étapes (pour référence)
+      // Je calcule les taux de conversion entre étapes
       const conversionRates = {
         step1_to_step2: sessionsByStep[1] > 0 ? Math.round((sessionsByStep[2] / sessionsByStep[1]) * 10000) / 100 : 0,
         step2_to_step3: sessionsByStep[2] > 0 ? Math.round((sessionsByStep[3] / sessionsByStep[2]) * 10000) / 100 : 0,
@@ -485,22 +450,20 @@ export class AnalyticsService {
         exitByStep: exitByStepWithPercentages, // À quelle étape les sessions sortent (avec pourcentages)
       };
 
-      // ============================================
-      // 4. Point d'abandon
-      // ============================================
+      // Je calcule le point d'abandon
       const abandonedEvents = await this.userEventRepository.find({
         where: { code_EventType: 'booking_abandoned' },
         relations: ['eventType']
       });
 
-      // Compter les abandons par étape
+      // Je compte les abandons par étape
       const abandonmentByStep: Record<number, number> = {};
       abandonedEvents.forEach(event => {
         const step = event.event_data?.step || 0;
         abandonmentByStep[step] = (abandonmentByStep[step] || 0) + 1;
       });
 
-      // Trouver l'étape avec le plus d'abandons
+      // Je trouve l'étape avec le plus d'abandons
       let maxAbandonStep = 0;
       let maxAbandonCount = 0;
       Object.entries(abandonmentByStep).forEach(([step, count]) => {
@@ -517,11 +480,7 @@ export class AnalyticsService {
         percentage: totalAbandoned > 0 ? Math.round((maxAbandonCount / totalAbandoned) * 10000) / 100 : 0
       };
 
-      // Les temps médians par étape sont déjà calculés dans tunnelReservation
-
-      // ============================================
-      // 6. Répartition par device
-      // ============================================
+      // Je calcule la répartition par device
       const deviceStats = await this.sessionRepository
         .createQueryBuilder('session')
         .select('session.device_type', 'device')
@@ -546,16 +505,14 @@ export class AnalyticsService {
         else if (device === 'tablet') deviceDistribution.tablet = count;
       });
 
-      // Ajouter les pourcentages
+      // J'ajoute les pourcentages
       const deviceDistributionWithPercentages = {
         mobile: { count: deviceDistribution.mobile, percentage: totalDevices > 0 ? Math.round((deviceDistribution.mobile / totalDevices) * 10000) / 100 : 0 },
         desktop: { count: deviceDistribution.desktop, percentage: totalDevices > 0 ? Math.round((deviceDistribution.desktop / totalDevices) * 10000) / 100 : 0 },
         tablet: { count: deviceDistribution.tablet, percentage: totalDevices > 0 ? Math.round((deviceDistribution.tablet / totalDevices) * 10000) / 100 : 0 }
       };
 
-      // ============================================
-      // 7. Répartition par browser
-      // ============================================
+      // Je calcule la répartition par browser
       const browserStats = await this.sessionRepository
         .createQueryBuilder('session')
         .select('session.browser', 'browser')
@@ -571,7 +528,7 @@ export class AnalyticsService {
 
       const totalBrowsers = browserStats.reduce((sum, stat) => sum + parseInt(stat.count), 0);
       
-      // Ajouter les pourcentages
+      // J'ajoute les pourcentages
       const browserDistribution: Record<string, { count: number; percentage: number }> = {};
       Object.entries(browserDistributionRaw).forEach(([browser, count]) => {
         browserDistribution[browser] = {
@@ -580,10 +537,7 @@ export class AnalyticsService {
         };
       });
 
-      // ============================================
-      // 8. Taux de conversion par statut de connexion
-      // ============================================
-      // Compter les funnel_started et payment_succeeded par statut de connexion
+      // Je calcule le taux de conversion par statut de connexion
       const loggedInFunnelStarted = await this.userEventRepository
         .createQueryBuilder('event')
         .innerJoin('event.session', 'session')
@@ -625,9 +579,7 @@ export class AnalyticsService {
         }
       };
 
-      // ============================================
-      // 9. Événements par type
-      // ============================================
+      // Je compte les événements par type
       const eventsByType = await this.userEventRepository
         .createQueryBuilder('event')
         .select('event.code_EventType', 'type')
@@ -640,9 +592,7 @@ export class AnalyticsService {
         eventsByTypeMap[item.type] = parseInt(item.count);
       });
 
-      // ============================================
-      // 10. Modales de retraites ouvertes (classées par retraite)
-      // ============================================
+      // Je calcule les modales de retraites ouvertes (classées par retraite)
       const retreatModalEvents = await this.userEventRepository.find({
         where: { code_EventType: 'retreat_modal_opened' },
         relations: ['eventType']
@@ -658,7 +608,7 @@ export class AnalyticsService {
         retreatModalStats[retreatId].count++;
       });
 
-      // Convertir en tableau et trier par nombre d'ouvertures
+      // Je convertis en tableau et trie par nombre d'ouvertures
       const retreatModalStatsArray = Object.entries(retreatModalStats)
         .map(([retreatId, data]) => ({
           retreat_id: retreatId,
@@ -667,9 +617,7 @@ export class AnalyticsService {
         }))
         .sort((a, b) => b.count - a.count);
 
-      // ============================================
-      // 11. Statistiques par statut de connexion
-      // ============================================
+      // Je calcule les statistiques par statut de connexion
       const sessionsWithLogin = await this.sessionRepository.count({
         where: { is_login: true }
       });
@@ -686,9 +634,7 @@ export class AnalyticsService {
         withoutLoginPercentage: totalSessions > 0 ? Math.round((sessionsWithoutLogin / totalSessions) * 10000) / 100 : 0,
       };
 
-      // ============================================
-      // 12. Statistiques par page (pages les plus vues)
-      // ============================================
+      // Je calcule les statistiques par page (pages les plus vues)
       const pageViews = await this.userEventRepository
         .createQueryBuilder('event')
         .select('event.page_path', 'page')
@@ -701,10 +647,10 @@ export class AnalyticsService {
 
       const pageStats: Array<{ page: string; views: number; uniqueSessions: number; medianTimeOnPage: number; percentage: number }> = [];
 
-      // Calculer le total de vues pour les pourcentages
+      // Je calcule le total de vues pour les pourcentages
       const totalViews = pageViews.reduce((sum, pv) => sum + parseInt(pv.views), 0);
 
-      // Pour chaque page, calculer les stats détaillées
+      // Pour chaque page, je calcule les stats détaillées
       for (const pageView of pageViews) {
         let pagePath = pageView.page;
         
@@ -718,7 +664,7 @@ export class AnalyticsService {
         
         const views = parseInt(pageView.views);
 
-        // Nombre de sessions uniques ayant visité cette page (en utilisant LIKE pour matcher avec ou sans query params)
+        // Je compte les sessions uniques ayant visité cette page
         const uniqueSessions = await this.userEventRepository
           .createQueryBuilder('event')
           .select('COUNT(DISTINCT event.session_id_Session)', 'count')
@@ -726,7 +672,7 @@ export class AnalyticsService {
           .andWhere('event.page_path LIKE :pagePattern', { pagePattern: `${pagePath}%` })
           .getRawOne();
 
-        // Temps médian passé sur cette page (en utilisant LIKE pour matcher avec ou sans query params)
+        // Je calcule le temps médian passé sur cette page
         const timeDiffs = await this.userEventRepository
           .createQueryBuilder('page_view')
           .select('TIMESTAMPDIFF(SECOND, page_view.event_ts, page_exit.event_ts)', 'timeDiff')
@@ -748,7 +694,7 @@ export class AnalyticsService {
             : times[Math.floor(times.length / 2)]
           : 0;
 
-        // Formater le nom de la page : enlever le "/" et remplacer "/" par "Accueil"
+        // Je formate le nom de la page
         let displayPage = pagePath;
         if (displayPage.startsWith('/')) {
           displayPage = displayPage.substring(1);
@@ -757,7 +703,7 @@ export class AnalyticsService {
           displayPage = 'Accueil';
         }
 
-        // Calculer le pourcentage de vues
+        // Je calcule le pourcentage de vues
         const percentage = totalViews > 0 ? Math.round((views / totalViews) * 10000) / 100 : 0;
 
         pageStats.push({
@@ -769,27 +715,24 @@ export class AnalyticsService {
         });
       }
 
-      // Filtrer les doublons et regrouper les pages avec query params
-      // On regroupe par page sans query params et on additionne les vues
+      // Je filtre les doublons et regroupe les pages avec query params
       const pageStatsMap = new Map<string, { page: string; views: number; uniqueSessions: number; medianTimeOnPage: number; percentage: number }>();
       
       for (const stat of pageStats) {
-        const key = stat.page; // Déjà formaté sans query params
+        const key = stat.page;
         
         if (pageStatsMap.has(key)) {
           const existing = pageStatsMap.get(key);
           if (existing) {
             existing.views += stat.views;
-            // Pour les sessions uniques, on garde le max (car on compte déjà les sessions distinctes)
             existing.uniqueSessions = Math.max(existing.uniqueSessions, stat.uniqueSessions);
-            // Pour le temps médian, on pourrait faire une moyenne pondérée, mais pour simplifier on garde le premier
           }
         } else {
           pageStatsMap.set(key, { ...stat });
         }
       }
 
-      // Recalculer les pourcentages après regroupement
+      // Je recalcule les pourcentages après regroupement
       const totalViewsAfterGrouping = Array.from(pageStatsMap.values()).reduce((sum, stat) => sum + stat.views, 0);
       const filteredPageStats = Array.from(pageStatsMap.values()).map(stat => ({
         ...stat,
@@ -813,12 +756,12 @@ export class AnalyticsService {
         paymentStats, // Stats Stripe (paiements réussis/échoués)
       };
     } catch (error) {
-      logger.error('❌ [Analytics] Erreur récupération stats:', error);
+      logger.error('[Analytics] Erreur récupération stats:', error);
       throw error;
     }
   }
 
-  // Récupérer tous les types d'événements
+  // Je récupère tous les types d'événements
   async getEventTypes(): Promise<EventType[]> {
     return this.eventTypeRepository.find({
       where: { is_enabled: true },
@@ -826,39 +769,34 @@ export class AnalyticsService {
     });
   }
 
-  // Vider toute la base de données analytics (sessions et événements uniquement)
-  // Note: Ne supprime PAS les EventType (données de configuration)
-  // Note: Ne touche PAS à MongoDB (uniquement MySQL analytics)
+  // Je vide toute la base analytics (sessions et événements uniquement, pas les EventType ni MongoDB)
   async clearAllData(): Promise<{ deletedSessions: number; deletedEvents: number }> {
     try {
-      // Compter avant suppression pour le log
       const sessionsCount = await this.sessionRepository.count();
       const eventsCount = await this.userEventRepository.count();
 
-      // Supprimer tous les événements utilisateur (UserEvent)
-      // Les sessions seront supprimées ensuite
-      // On ne touche PAS aux EventType (ce sont des données de configuration)
+      // Je supprime tous les événements utilisateur
       await this.userEventRepository
         .createQueryBuilder()
         .delete()
         .from(UserEvent)
         .execute();
 
-      // Supprimer toutes les sessions
+      // Je supprime toutes les sessions
       await this.sessionRepository
         .createQueryBuilder()
         .delete()
         .from(Session)
         .execute();
 
-      logger.log(`🗑️ [Analytics] Base MySQL vidée : ${sessionsCount} sessions et ${eventsCount} événements supprimés (EventType conservés)`);
+      logger.log(`[Analytics] Base MySQL vidée : ${sessionsCount} sessions et ${eventsCount} événements supprimés (EventType conservés)`);
 
       return {
         deletedSessions: sessionsCount,
         deletedEvents: eventsCount
       };
     } catch (error) {
-      logger.error('❌ [Analytics] Erreur lors de la suppression des données:', error);
+      logger.error('[Analytics] Erreur lors de la suppression des données:', error);
       throw error;
     }
   }

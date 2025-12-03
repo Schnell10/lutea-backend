@@ -1,18 +1,13 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 /**
- * Décorateur pour récupérer l'utilisateur connecté depuis le JWT
+ * Décorateur personnalisé pour récupérer l'utilisateur connecté depuis le JWT.
+ * J'évite ainsi de répéter @Request() req puis req.user dans chaque méthode.
  * 
- * Évite d'avoir à faire @Request() req puis req.user à chaque fois
- * 
- * Exemple d'utilisation :
- * - async getProfile(@CurrentUser() user) { ... }
- * - async updateProfile(@CurrentUser() user, @Body() data) { ... }
- * 
- * L'utilisateur contient : { sub: "userId", email: "user@email.com", role: "CLIENT" }
+ * Exemple : async getProfile(@CurrentUser() user) { ... }
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
+  (_data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
     return request.user; // Utilisateur mis par JwtAuthGuard
   },

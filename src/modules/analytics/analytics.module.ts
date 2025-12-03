@@ -11,14 +11,14 @@ import { UsersModule } from '../users/users.module';
 @Module({})
 export class AnalyticsModule {
   static forRoot(): DynamicModule {
-    // Vérifier si MySQL est configuré
+    // Vérifie si MySQL est configuré
     const isMySQLConfigured = process.env.NODE_ENV !== 'test' && 
                               process.env.MYSQL_HOST && 
                               process.env.MYSQL_USER && 
                               process.env.MYSQL_PASSWORD;
 
     if (!isMySQLConfigured) {
-      // Retourner un module vide si MySQL n'est pas configuré
+      // Retourne un module vide si MySQL n'est pas configuré
       return {
         module: AnalyticsModule,
         imports: [],
@@ -28,7 +28,7 @@ export class AnalyticsModule {
       };
     }
 
-    // Retourner le module complet avec TypeORM si configuré
+    // Retourne le module complet avec TypeORM si configuré
     return {
       module: AnalyticsModule,
       imports: [
