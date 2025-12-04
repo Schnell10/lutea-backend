@@ -3,9 +3,14 @@
 ## Ce qui est en place
 
 **Authentification JWT**
-- Token d'accès : 15 minutes
-- Refresh token : 7 jours
+- Token d'accès : 15 minutes (pour tous)
+- Refresh token : 
+  - Clients : 7 jours (reconnexion automatique)
+  - Admins : 4 heures (sécurité renforcée, reconnexion manuelle après expiration)
 - Clé secrète forte
+- Double token (access + refresh) pour sécurité optimale
+- Refresh périodique toutes les 10 minutes (tant que l'utilisateur est sur le site)
+- Refresh automatique lors des requêtes API via `fetchWithRefresh` (clients uniquement)
 
 **Mots de passe**
 - Hachage bcrypt avec 12 rounds
@@ -125,10 +130,61 @@ En production, je dois absolument changer les clés JWT par des valeurs fortes e
 - GET /analytics/event-types - Types d'événements
 - DELETE /analytics/clear-all - Vider base analytics
 
+## Système de Tokens JWT
+
+### Architecture
+
+L'application utilise un système de **double tokens** :
+- **Access Token** : Durée courte (15 min) pour limiter les risques en cas de vol
+- **Refresh Token** : Durée variable selon le rôle pour équilibrer sécurité et expérience utilisateur
+
+### Durées des Tokens
+
+| Type Utilisateur | Access Token | Refresh Token | Comportement |
+|------------------|--------------|---------------|--------------|
+| **Client** | 15 minutes | 7 jours | Reconnexion automatique pendant 7 jours |
+| **Admin** | 15 minutes | 4 heures | Reconnexion automatique seulement si retour < 4h |
+
+### Mécanismes de Refresh
+
+**Refresh Périodique** (`GlobalAuthRefresh`) :
+- Toutes les 10 minutes tant que l'utilisateur est sur le site
+- Maintient la session active sans interruption
+- Fonctionne pour tous (clients et admins)
+
+**Refresh Automatique** (`fetchWithRefresh`) :
+- Gère automatiquement les tokens expirés lors des requêtes API
+- Si 401 détecté → refresh automatique → réessai de la requête
+- Utilisé pour toutes les requêtes authentifiées côté frontend
+
+**Vérification au Chargement** (`_app.jsx`) :
+- Au chargement de l'application, vérifie l'authentification
+- Reconnexion automatique si refresh token valide
+- Fonctionne pour tous (clients et admins)
+
+### Sécurité des Tokens
+
+**Stockage** :
+- Tokens stockés dans des cookies httpOnly (non accessibles en JavaScript)
+- Protection contre les attaques XSS
+- Cookies sécurisés en HTTPS (production)
+
+**Rotation** :
+- Access token renouvelé toutes les 10 minutes (refresh périodique)
+- Refresh token conserve sa durée d'origine jusqu'à expiration
+- Pas de rotation du refresh token (reste valide jusqu'à expiration)
+
+**Expiration Différenciée** :
+- Admins : Refresh token de 4 heures pour sécurité renforcée
+- Clients : Refresh token de 7 jours pour meilleure expérience utilisateur
+
+Pour plus de détails, voir `TOKENS-SYSTEM.md`.
+
 ## Avant la mise en production
 
 - Changer JWT_SECRET et JWT_REFRESH_SECRET par des clés fortes
 - Vérifier que HTTPS est activé
 - Vérifier que le rate limiting est actif
 - Mettre debug: false dans security.config.ts
+- Vérifier les durées des tokens dans security.config.ts (refreshTokenExpiryAdmin: '4h')
 - Faire un npm audit pour vérifier les vulnérabilités

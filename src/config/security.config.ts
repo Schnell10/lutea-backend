@@ -6,7 +6,8 @@ const sameSiteValue = process.env.NODE_ENV === 'production' ? ('none' as const) 
 export const securityConfig = {
   jwt: {
     accessTokenExpiry: '15m',
-    refreshTokenExpiry: '7d',
+    refreshTokenExpiry: '7d', // Pour les clients
+    refreshTokenExpiryAdmin: '4h', // Pour les admins (sécurité renforcée)
     secret: process.env.JWT_SECRET,
   },
 

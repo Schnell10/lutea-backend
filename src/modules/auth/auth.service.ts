@@ -181,16 +181,22 @@ export class AuthService {
 
     logger.log(`[AuthService] Access token généré (expire dans ${securityConfig.jwt.accessTokenExpiry})`);
 
-    // Je génère le refresh token avec la configuration centralisée
+    // Je génère le refresh token avec une durée différente selon le rôle
+    // Admins : durée configurée dans securityConfig (4h par défaut) pour sécurité
+    // Clients : 7 jours pour meilleure expérience utilisateur
+    const refreshTokenExpiry = user.role === UserRole.ADMIN 
+      ? securityConfig.jwt.refreshTokenExpiryAdmin // Durée pour les admins 4h
+      : securityConfig.jwt.refreshTokenExpiry; // 7 jours pour les clients
+    
     const refreshToken = this.jwtService.sign(
       { 
         sub: user._id.toString(),
         type: 'refresh', // Pour distinguer access/refresh
       },
-      { expiresIn: securityConfig.jwt.refreshTokenExpiry }
+      { expiresIn: refreshTokenExpiry }
     );
 
-    logger.log(`[AuthService] Refresh token généré (expire dans ${securityConfig.jwt.refreshTokenExpiry})`);
+    logger.log(`[AuthService] Refresh token généré (expire dans ${refreshTokenExpiry}) pour ${user.role}`);
 
     // Je retourne les tokens et informations utilisateur
     const result = {
@@ -286,6 +292,8 @@ export class AuthService {
 
   // Je renouvelle le token d'accès avec un refresh token valide
   async refreshToken(refreshToken: string) {
+    logger.log('[AuthService] Refresh token demandé');
+    
     if (!refreshToken) {
       throw new BadRequestException('Token de refresh requis');
     }
@@ -313,6 +321,7 @@ export class AuthService {
       };
       
       const newAccessToken = this.jwtService.sign(newPayload);
+      logger.log(`[AuthService] Nouveau access token généré pour ${user.email} (${user.role})`);
 
       // Je retourne le nouveau token et les informations utilisateur
       return {
@@ -328,6 +337,7 @@ export class AuthService {
         }
       };
     } catch (error) {
+      logger.error(`[AuthService] Échec du refresh token: ${error.message}`);
       if (error instanceof UnauthorizedException) {
         throw error;
       }
