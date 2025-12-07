@@ -11,7 +11,7 @@ export class BookingsCronService {
     private readonly emailService: EmailService
   ) {}
 
-  // Nettoyer les bookings expirés toutes les 20 minutes 
+  // Nettoie les bookings expirés toutes les 20 minutes 
   @Cron('0 */20 * * * *')
   async cleanupExpiredBookings() {
     try {
@@ -28,22 +28,20 @@ export class BookingsCronService {
     }
   }
 
-  // Vérifier les incohérences de paiement toutes les 6 heures
-  @Cron('0 0 */6 * * *') // Toutes les 6 heures
+  // Vérifie les incohérences de paiement toutes les 6 heures
+  @Cron('0 0 */6 * * *')
   async checkPaymentDiscrepancies() {
     try {
       logger.log('[Cron] Vérification automatique des incohérences de paiement...');
       
-      // Vérifier avec un délai de grâce de 5 minutes pour éviter les fausses alertes
+      // Vérifie avec un délai de 5 minutes pour éviter les fausses alertes
       const discrepancies = await this.bookingsService.checkPaymentDiscrepancies(5);
       
       if (discrepancies.summary.totalDiscrepancies > 0) {
         logger.log(`[Cron] ${discrepancies.summary.totalDiscrepancies} incohérences détectées (${discrepancies.summary.orphanPaymentsCount || 0} paiements orphelins, ${discrepancies.summary.orphanBookingsCount || 0} bookings orphelins)`);
         
-        // Construire le message d'alerte détaillé
         const alertMessage = this.buildAlertMessage(discrepancies);
         
-        // Envoyer l'alerte par email
         await this.emailService.sendAdminAlert(
           'Incohérences de paiement détectées - Lutea',
           alertMessage

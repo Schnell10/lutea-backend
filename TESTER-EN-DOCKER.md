@@ -1,4 +1,12 @@
-# Tester dans Docker en Local
+1. test-docker-compose.ps1
+   ↓
+2. docker-compose.test.yml (lance MongoDB + Backend)
+   ↓
+3. test-env-setup.js (détecte Docker, utilise variables Docker)
+   ↓
+4. Tests unitaires + E2E dans le conteneur
+
+# Test dans Docker en Local
 
 Avant de push sur GitHub, je lance les tests dans Docker pour être sûr que tout fonctionne comme en production.
 

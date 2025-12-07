@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { luteaConfig } from '../../config/lutea.config';
 
-// Je définis les couleurs Lutea avec un style propre et moderne
 const COLORS = {
   primary: rgb(0.506, 0.627, 0.522), // #81a085
   title: rgb(0.306, 0.388, 0.318), // #4e6351

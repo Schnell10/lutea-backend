@@ -171,27 +171,27 @@ export class AnalyticsService {
 
   // Je récupère les statistiques complètes
   async getStats(): Promise<any> {
-    try {
+    try { 
       const totalSessions = await this.sessionRepository.count();
       const totalEvents = await this.userEventRepository.count();
 
-      // Je calcule le taux de rebond
+      // le taux de rebond
       const bounceSessionsResult = await this.sessionRepository
-        .createQueryBuilder('session')
-        .select('session.session_id', 'session_id')
-        .addSelect('session.started_at', 'started_at')
+        .createQueryBuilder('session') // Démarre requête sur Session (alias session)
+        .select('session.session_id', 'session_id') 
+        .addSelect('session.started_at', 'started_at') 
         .addSelect('session.ended_at', 'ended_at')
-        .addSelect('COUNT(event.event_id)', 'event_count')
-        .leftJoin('session.userEvents', 'event')
-        .where('event.code_EventType = :type', { type: 'page_view' })
-        .groupBy('session.session_id')
-        .having('COUNT(event.event_id) = 1')
-        .andHaving('TIMESTAMPDIFF(SECOND, session.started_at, COALESCE(session.ended_at, NOW())) < 30')
-        .getRawMany();
+        .addSelect('COUNT(event.event_id)', 'event_count') // Compte les événements par session
+        .leftJoin('session.userEvents', 'event') // Joint avec UserEvent pour compter les événements
+        .where('event.code_EventType = :type', { type: 'page_view' }) // Filtre uniquement les page_view
+        .groupBy('session.session_id') // Regroupe par session 
+        .having('COUNT(event.event_id) = 1') // Garde seulement les sessions avec 1 événement
+        .andHaving('TIMESTAMPDIFF(SECOND, session.started_at, COALESCE(session.ended_at, NOW())) < 30') // Garde sessions < 30 sec
+        .getRawMany(); // Exécute et retourne les résultats
       
-      const bounceSessions = bounceSessionsResult.length;
+      const bounceSessions = bounceSessionsResult.length; // Compte le nombre de sessions rebond
 
-      const bounceRate = totalSessions > 0 ? (bounceSessions / totalSessions) * 100 : 0;
+      const bounceRate = totalSessions > 0 ? (bounceSessions / totalSessions) * 100 : 0; // Calcule le pourcentage
 
       // Je calcule le taux de conversion global
       const funnelStarted = await this.userEventRepository.count({
@@ -204,7 +204,7 @@ export class AnalyticsService {
 
       const conversionRate = funnelStarted > 0 ? (paymentSucceeded / funnelStarted) * 100 : 0;
 
-      // Je analyse le tunnel de réservation par session
+      // analyse le tunnel de réservation par session
       const sessionsWithFunnelStarted = await this.userEventRepository
         .createQueryBuilder('event')
         .select('DISTINCT event.session_id_Session', 'session_id')
@@ -745,7 +745,7 @@ export class AnalyticsService {
         bounceRate: Math.round(bounceRate * 100) / 100,
         conversionRate: Math.round(conversionRate * 100) / 100,
         eventsByType: eventsByTypeMap,
-        tunnelReservation, // Renommé de funnelConversion, avec analyse par session
+        tunnelReservation, 
         abandonmentPoint,
         deviceDistribution: deviceDistributionWithPercentages, // Avec pourcentages
         browserDistribution, // Avec pourcentages

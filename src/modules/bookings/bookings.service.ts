@@ -338,26 +338,21 @@ export class BookingsService {
       .exec();
   }
 
-  // Je nettoie les bookings expirés
+  // nettoie les bookings expirés
   async cleanupExpiredBookings(): Promise<number> {
     // Bookings expirés après 15 minutes
     const fifteenMinutesAgo = new Date(Date.now() - 16 * 60 * 1000);
-    logger.log('[Cleanup] Recherche des bookings créés avant:', fifteenMinutesAgo.toISOString());
-    
-    // Je trouve les réservations expirées
+    // réservations expirées
     const expiredBookings = await this.bookingModel.find({
       statut: BookingStatus.PENDING,
       statutPaiement: PaymentStatus.PENDING,
       createdAt: { $lt: fifteenMinutesAgo }
-    });
-    
-    logger.log('[Cleanup] Bookings expirés trouvés:', expiredBookings.length);
+    }); 
 
     let cleanedCount = 0;
-
     for (const booking of expiredBookings) {
       try {
-        // 1. D'ABORD : J'annule le PaymentIntent chez Stripe
+        // J'annule le PaymentIntent chez Stripe
         if (booking.stripePaymentIntentId) {
           try {
             await this.stripeService.cancelPaymentIntent(booking.stripePaymentIntentId);
@@ -367,18 +362,14 @@ export class BookingsService {
             // Je continue même si l'annulation Stripe échoue
           }
         }
-
-        // 2. ENSUITE : Je supprime complètement la réservation côté Lutea
+        // Supprime la réservation
         await this.bookingModel.findByIdAndDelete(booking._id);
-
         logger.log(`Réservation ${booking._id.toString()} supprimée définitivement`);
         cleanedCount++;
-
       } catch (error) {
         logger.error(`Erreur lors du nettoyage de la réservation ${booking._id.toString()}:`, error);
       }
     }
-
     return cleanedCount;
   }
 

@@ -1,15 +1,15 @@
-// Configuration simple de Lutea
+// Configuration  Lutea
 export const luteaConfig = {
-  // 🏢 Données entreprise
+  // Données entreprise
   company: {
     name: 'Lutea',
-    siret: '12345678901234', // À remplacer par votre SIRET
+    siret: '12345678901234', 
     address: '40 impasse Antoine de Saporta, 34790 Grabels, France',
     phone: '+33 (0)6 61 47 09 76',
     email: 'lutea.montpellier@gmail.com'
   },
 
-  // 📧 Emails
+  // Emails
   emails: {
     from: 'noreply@lutea.com', // Email d'envoi
     contact: 'pierreschnell@hotmail.com', // Email de réception

@@ -2,10 +2,10 @@
 # Usage : .\run-all-tests.ps1 [option]
 #
 # Options :
-#   -Unit      : Lance uniquement les tests unitaires
-#   -E2E       : Lance uniquement les tests E2E
-#   -Coverage  : Lance avec coverage
-#   (aucune)   : Lance tous les tests
+#   -Unit      : Je lance uniquement les tests unitaires
+#   -E2E       : Je lance uniquement les tests E2E
+#   -Coverage  : Je lance avec coverage
+#   (aucune)   : Je lance tous les tests
 
 param(
     [switch]$Unit,
@@ -19,7 +19,7 @@ Write-Host "TESTS BACKEND LUTEA" -ForegroundColor Blue
 Write-Host "==========================================" -ForegroundColor Blue
 Write-Host ""
 
-# Verifier que .env.test existe
+# Je vérifie que .env.test existe
 if (-not (Test-Path ".env.test")) {
     Write-Host "ERREUR : Le fichier .env.test n'existe pas !" -ForegroundColor Red
     Write-Host ""
@@ -62,7 +62,7 @@ function Print-Summary {
     Write-Host "==========================================" -ForegroundColor Blue
 }
 
-# Detecter l'option
+# Je détecte l'option choisie
 if ($Unit) {
     Write-Host "Lancement des tests UNITAIRES uniquement..." -ForegroundColor Yellow
     Write-Host ""
@@ -82,7 +82,7 @@ elseif ($Coverage) {
     $ExitCode = $LASTEXITCODE
 }
 else {
-    # Lancer TOUS les tests par defaut
+    # Je lance TOUS les tests par défaut
     Write-Host "1/2 - Tests UNITAIRES..." -ForegroundColor Yellow
     Write-Host ""
     npm test
