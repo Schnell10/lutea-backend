@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+// "Dans ce fichier, ignore les avertissements sur les méthodes non liées"
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
