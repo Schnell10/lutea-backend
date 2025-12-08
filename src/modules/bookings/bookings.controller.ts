@@ -50,7 +50,7 @@ export class BookingsController {
       const accessToken = req.cookies?.access_token;
       
       if (!accessToken) {
-        logger.log('🔐 [AUTH] Aucun token trouvé dans les cookies');
+        logger.log('[AUTH] Aucun token trouvé dans les cookies');
         return { userId: null, isGuest: true };
       }
 
@@ -59,7 +59,7 @@ export class BookingsController {
         secret: this.configService.get<string>('JWT_SECRET')
       });
 
-      logger.log('🔐 [AUTH] Token décodé avec succès:', {
+      logger.log('[AUTH] Token décodé avec succès:', {
         sub: payload.sub,
         email: payload.email,
         role: payload.role
@@ -70,7 +70,7 @@ export class BookingsController {
         isGuest: false
       };
     } catch (error) {
-      logger.log('🔐 [AUTH] Erreur lors du décodage du token:', error.message);
+      logger.log('[AUTH] Erreur lors du décodage du token:', error.message);
       return { userId: null, isGuest: true };
     }
   }
@@ -91,7 +91,7 @@ export class BookingsController {
 
       return { placesDisponibles };
     } catch (error) {
-      logger.error('❌ [PLACES] Erreur lors de la vérification:', error.message);
+      logger.error('[PLACES] Erreur lors de la vérification:', error.message);
       throw error;
     }
   }
@@ -99,19 +99,19 @@ export class BookingsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req: any) {
-    // 🎯 LOGS D'AUTHENTIFICATION DÉTAILLÉS
-    logger.log('🔐 [AUTH] ===== VÉRIFICATION AUTHENTIFICATION BACKEND =====');
-    logger.log('🔐 [AUTH] req.user:', req.user);
-    logger.log('🔐 [AUTH] req.user?.sub:', req.user?.sub);
-    logger.log('🔐 [AUTH] Headers authorization:', req.headers.authorization);
-    logger.log('🔐 [AUTH] Headers cookie:', req.headers.cookie);
-    logger.log('🔐 [AUTH] Tous les headers:', req.headers);
-    logger.log('🔐 [AUTH] ================================================');
+    // LOGS D'AUTHENTIFICATION DÉTAILLÉS
+    logger.log('[AUTH] ===== VÉRIFICATION AUTHENTIFICATION BACKEND =====');
+    logger.log('[AUTH] req.user:', req.user);
+    logger.log('[AUTH] req.user?.sub:', req.user?.sub);
+    logger.log('[AUTH] Headers authorization:', req.headers.authorization);
+    logger.log('[AUTH] Headers cookie:', req.headers.cookie);
+    logger.log('[AUTH] Tous les headers:', req.headers);
+    logger.log('[AUTH] ================================================');
     
     // J'extrais l'utilisateur depuis les cookies (optionnel)
     const { userId, isGuest } = this.extractUserFromCookies(req);
     
-    logger.log('📝 [BOOKING] Création d\'un booking...', {
+    logger.log('[BOOKING] Création d\'un booking...', {
       retreatId: createBookingDto.retreatId,
       nbPlaces: createBookingDto.nbPlaces,
       date: createBookingDto.dateStart,
@@ -257,7 +257,7 @@ export class BookingsController {
     if (discrepancies.summary.totalDiscrepancies > 0) {
       // J'envoie une alerte email automatique si incohérences de paiement détectées
       const alertMessage = `
-        🚨 ALERTE - Incohérences de paiement détectées
+        ALERTE - Incohérences de paiement détectées
         
         Résumé :
         - Total des incohérences : ${discrepancies.summary.totalDiscrepancies}
@@ -267,7 +267,7 @@ export class BookingsController {
       `;
 
       await this.emailService.sendAdminAlert(
-        '🚨 Incohérences de paiement détectées',
+        'ALERTE - Incohérences de paiement détectées',
         alertMessage
       );
 
@@ -298,7 +298,7 @@ export class BookingsController {
   @Post('admin/create')
   @HttpCode(HttpStatus.CREATED)
   async createBookingByAdmin(@Body() createBookingDto: CreateBookingDto) {
-    logger.log('👨‍💼 [ADMIN] Création manuelle d\'une réservation...');
+    logger.log('[ADMIN] Création manuelle d\'une réservation...');
     return this.bookingsService.createBookingByAdmin(createBookingDto);
   }
 }
