@@ -52,6 +52,6 @@ export const securityConfig = {
   },
 
   logging: {
-    debug: true, // true = voir tous les logs, false = masquer
+    debug: false, // true = voir tous les logs, false = masquer
   },
 };
